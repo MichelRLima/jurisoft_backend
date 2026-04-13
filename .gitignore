@@ -1,0 +1,32 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript
+dist/
+*.tsbuildinfo
+
+# Env vars
+.env
+.envexemplo
+
+# Prisma
+prisma/dev.db
+prisma/*.db-journal
+
+# VSCode
+.vscode/
+
+# Logs
+logs/
+*.log
+
+# OS (Windows/macOS)
+.DS_Store
+Thumbs.db
+
+# Google API Credentials
+credentials.json
+token.json
