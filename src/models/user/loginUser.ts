@@ -31,8 +31,8 @@ class LoginUser {
       const tempoInicial = new Date().getTime();
 
       // Checa se o usuário existe
-      const userAlreadyExists = await client.usuario.findFirst({
-        where: { login },
+      const userAlreadyExists = await client.usuario.findUnique({
+        where: { login: login },
       });
 
       if (!userAlreadyExists) {
@@ -79,14 +79,8 @@ class LoginUser {
         userAlreadyExists.senha ?? "", // Se for null, vira ""
       );
 
-      /*      if (!passwordMatch) {
-        const failureCounter: IFailureCounter = {
-          nTentativas: blockLogin ? blockLogin.nTentativas + 1 : 1,
-          lastTry: tempoInicial,
-        };
-        
-       cache.set(`${userAlreadyExists.id}`, failureCounter, 3600);
- 
+      if (!passwordMatch) {
+        /* 
         await logLoginCliente.execute(
           userAlreadyExists.id,
           ipAddress,
@@ -94,11 +88,11 @@ class LoginUser {
           deviceData.browser.name,
           deviceData.os.name
         );
-
+ */
         throw Object.assign(new Error("User or password incorrect!"), {
           status: 401,
         });
-      } */
+      }
 
       // Transaction para garantir consistência
       const response = await client.$transaction(async (tx) => {
@@ -127,6 +121,7 @@ class LoginUser {
 
       return response;
     } catch (error: any) {
+      console.error(error);
       error.path = "src/models/internal/auth/authUser.ts";
       throw error;
     } finally {

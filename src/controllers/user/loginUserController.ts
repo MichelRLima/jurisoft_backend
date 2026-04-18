@@ -6,9 +6,9 @@ import checkUsuario from "../../models/user/checkUsuario";
 
 module.exports = {
   async handle(req: Request, res: Response) {
-    const { email, senha } = req.body;
+    const { login, senha } = req.body;
     try {
-      const loginData = await loginUser.execute(email, senha);
+      const loginData = await loginUser.execute(login, senha);
 
       const { perfil, perfilAlreadyExists } = (await checkPerfil.execute(
         loginData.refreshToken.usuarioId,

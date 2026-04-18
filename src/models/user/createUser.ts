@@ -11,8 +11,6 @@ export const createUser = {
     permissaoId: string,
   ) {
     try {
-      console.log("----", login, senha, email, permissaoId);
-
       const result = await prisma.$transaction(async (prisma) => {
         // verificar se usuario existe
         const userAlreadyExists = await prisma.usuario.findFirst({

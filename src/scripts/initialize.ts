@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { createUser } from "../models/user/createUser";
 
 const prisma = new PrismaClient();
 
@@ -68,13 +69,38 @@ const initializeStatusProcesso = async () => {
   }
 };
 
+const inicializeUsers = async () => {
+  try {
+    const user = {
+      login: process.env.FIRST_USER_LOGIN || "admin",
+      password: process.env.FIRST_USER_PASSWORD || "admin",
+      email: process.env.FIRST_USER_EMAIL || "projetoadvocacy@gmail.com",
+    };
+    const firstUser = await prisma.usuario.findUnique({
+      where: {
+        login: user?.login,
+      },
+    });
+
+    if (firstUser) {
+      console.log("🚀 Usuário admin ja cadastrado");
+      return;
+    } else {
+      console.log("🚀 Criando usuário admin");
+      await createUser.execute(user?.login, user?.password, user?.email, "1");
+    }
+  } catch (error) {
+    console.error("❌ Erro ao inicializar cadastros de usuários:", error);
+    throw error; // Lança o erro para o initializeApp tratar (parar o servidor)
+  }
+};
+
 export const initializeApp = async () => {
   console.log("🚀 Executando scripts de inicialização...");
-  await initializeStatusProcesso();
+
   try {
-    // Exemplo: Verificar conexão com DB, rodar migrations, seed de admin, etc.
-    // await database.connect();
-    // await seedUsers();
+    await initializeStatusProcesso();
+    await inicializeUsers();
 
     console.log("✅ Inicialização concluída com sucesso!");
   } catch (error) {
