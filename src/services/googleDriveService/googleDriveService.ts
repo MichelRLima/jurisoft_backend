@@ -3,18 +3,45 @@ import { google } from "googleapis";
 import path from "path";
 import fs from "fs";
 
-// Caminho para o arquivo que você baixou do Google
-const KEY_PATH = path.join(process.cwd(), "credentials.json");
-console.log(KEY_PATH);
+let client;
 
-// Carrega o conteúdo do JSON
-const keys = JSON.parse(fs.readFileSync(KEY_PATH, "utf8"));
-const client = keys.installed || keys.web; // O Google muda o nome da chave dependendo do tipo de app
+// 1. Tenta carregar da Variável de Ambiente (Render)
+if (process.env.GOOGLE_CREDENTIALS_JSON) {
+  try {
+    const keys = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
+    client = keys.installed || keys.web;
+    console.log("Credenciais do Google carregadas via Variável de Ambiente.");
+  } catch (err) {
+    console.error(
+      "Erro ao fazer parse da variável GOOGLE_CREDENTIALS_JSON",
+      err,
+    );
+  }
+}
 
+// 2. Se não encontrou a variável, tenta carregar do arquivo local (Desenvolvimento)
+if (!client) {
+  const KEY_PATH = path.join(process.cwd(), "credentials.json");
+
+  if (fs.existsSync(KEY_PATH)) {
+    const keys = JSON.parse(fs.readFileSync(KEY_PATH, "utf8"));
+    client = keys.installed || keys.web;
+    console.log("Credenciais do Google carregadas via arquivo local.");
+  } else {
+    throw new Error(
+      "Credenciais do Google não encontradas! Verifique a variável de ambiente ou o arquivo credentials.json.",
+    );
+  }
+}
+
+// Configuração do OAuth2
 export const oauth2Client = new google.auth.OAuth2(
   client.client_id,
   client.client_secret,
-  "http://localhost:3333/oauth2callback", // Ele pega a primeira URL de redirecionamento que você cadastrou
+  // DICA: No Render, essa URL deve ser a da sua API, não localhost!
+  process.env.NODE_ENV === "production"
+    ? "https://seu-app-no-render.onrender.com/oauth2callback"
+    : "http://localhost:3333/oauth2callback",
 );
 
 export const DRIVE_SCOPES = [
