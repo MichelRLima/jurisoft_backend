@@ -9,9 +9,10 @@ const TOKEN_PATH = path.join(process.cwd(), "token.json");
 class GoogleUploadFileModel {
   async execute(file: any) {
     try {
-      if (!oauth2Client.credentials.access_token && fs.existsSync(TOKEN_PATH)) {
-        const savedToken = fs.readFileSync(TOKEN_PATH, "utf-8");
-        oauth2Client.setCredentials(JSON.parse(savedToken));
+      if (!oauth2Client.credentials || !oauth2Client.credentials.access_token) {
+        throw new Error(
+          "Não autorizado: Token do Google ausente. Faça login novamente.",
+        );
       }
 
       const drive = google.drive({ version: "v3", auth: oauth2Client });

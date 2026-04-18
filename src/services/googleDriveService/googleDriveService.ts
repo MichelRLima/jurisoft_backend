@@ -1,48 +1,67 @@
-// src/services/googleDriveService.ts
+// src/services/googleDriveService/googleDriveService.ts
 import { google } from "googleapis";
 import path from "path";
 import fs from "fs";
+import "dotenv/config";
 
-let client;
+let client: any;
+let tokenData: any;
 
-// 1. Tenta carregar da Variável de Ambiente (Render)
+// --- 1. CARREGAMENTO DAS CREDENCIAIS (CLIENT ID / SECRET) ---
 if (process.env.GOOGLE_CREDENTIALS_JSON) {
   try {
-    const keys = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
-    client = keys.installed || keys.web;
-    console.log("Credenciais do Google carregadas via Variável de Ambiente.");
-  } catch (err) {
-    console.error(
-      "Erro ao fazer parse da variável GOOGLE_CREDENTIALS_JSON",
-      err,
+    const keys = JSON.parse(
+      process.env.GOOGLE_CREDENTIALS_JSON.trim().replace(/^'|'$/g, ""),
     );
+    client = keys.installed || keys.web;
+  } catch (err) {
+    console.error("Erro no parse de GOOGLE_CREDENTIALS_JSON:", err);
   }
 }
 
-// 2. Se não encontrou a variável, tenta carregar do arquivo local (Desenvolvimento)
 if (!client) {
   const KEY_PATH = path.join(process.cwd(), "credentials.json");
-
   if (fs.existsSync(KEY_PATH)) {
-    const keys = JSON.parse(fs.readFileSync(KEY_PATH, "utf8"));
-    client = keys.installed || keys.web;
-    console.log("Credenciais do Google carregadas via arquivo local.");
-  } else {
-    throw new Error(
-      "Credenciais do Google não encontradas! Verifique a variável de ambiente ou o arquivo credentials.json.",
-    );
+    client =
+      JSON.parse(fs.readFileSync(KEY_PATH, "utf8")).installed ||
+      JSON.parse(fs.readFileSync(KEY_PATH, "utf8")).web;
   }
 }
 
-// Configuração do OAuth2
+if (!client) throw new Error("Credenciais do Google não encontradas.");
+
+// --- 2. CONFIGURAÇÃO DO CLIENTE OAUTH2 ---
 export const oauth2Client = new google.auth.OAuth2(
   client.client_id,
   client.client_secret,
-  // DICA: No Render, essa URL deve ser a da sua API, não localhost!
   process.env.NODE_ENV === "production"
     ? "https://seu-app-no-render.onrender.com/oauth2callback"
     : "http://localhost:3333/oauth2callback",
 );
+
+// --- 3. CARREGAMENTO DO TOKEN (ACCESS / REFRESH TOKEN) ---
+// Tenta primeiro pela Variável de Ambiente (Render)
+if (process.env.GOOGLE_TOKEN_JSON) {
+  try {
+    tokenData = JSON.parse(
+      process.env.GOOGLE_TOKEN_JSON.trim().replace(/^'|'$/g, ""),
+    );
+    oauth2Client.setCredentials(tokenData);
+    console.log("✅ Token do Google carregado via Variável de Ambiente.");
+  } catch (err) {
+    console.error("Erro no parse de GOOGLE_TOKEN_JSON:", err);
+  }
+}
+
+// Se não houver variável, tenta pelo arquivo local (Desenvolvimento)
+if (!tokenData) {
+  const TOKEN_PATH = path.join(process.cwd(), "token.json");
+  if (fs.existsSync(TOKEN_PATH)) {
+    tokenData = JSON.parse(fs.readFileSync(TOKEN_PATH, "utf8"));
+    oauth2Client.setCredentials(tokenData);
+    console.log("✅ Token do Google carregado via arquivo local.");
+  }
+}
 
 export const DRIVE_SCOPES = [
   "https://www.googleapis.com/auth/drive.file",
