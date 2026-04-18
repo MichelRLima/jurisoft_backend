@@ -10,9 +10,9 @@ module.exports = {
     try {
       const loginData = await loginUser.execute(email, senha);
 
-      const { perfil, perfilAlreadyExists } = await checkPerfil.execute(
+      const { perfil, perfilAlreadyExists } = (await checkPerfil.execute(
         loginData.refreshToken.usuarioId,
-      );
+      )) || { perfil: null, perfilAlreadyExists: false };
 
       const usuario = await checkUsuario.execute(
         loginData.refreshToken.usuarioId,

@@ -21,7 +21,7 @@ class UpdatePerfilCOntroller {
       }
 
       res.status(200).json(response.updatePerfil);
-    } catch (error) {
+    } catch (error: any) {
       if (!error.path) {
         error.path =
           "src/controllers/internal/perfil/updatePerfilClienteController.js";

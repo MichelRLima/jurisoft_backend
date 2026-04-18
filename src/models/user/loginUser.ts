@@ -76,7 +76,7 @@ class LoginUser {
       // Verificar senha
       const passwordMatch = await bcrypt.compare(
         senha,
-        userAlreadyExists.senha,
+        userAlreadyExists.senha ?? "", // Se for null, vira ""
       );
 
       /*      if (!passwordMatch) {

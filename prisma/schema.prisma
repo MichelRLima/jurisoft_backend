@@ -14,15 +14,17 @@ datasource db {
 }
 
 model Usuario {
-  id           String         @id @default(uuid())
-  login        String?        @unique
-  senha        String?
-  email        String?        @unique
-  status       Int            @default(1)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  RefreshToken RefreshToken[]
-  perfil       Perfil[]
+  id                String              @id @default(uuid())
+  login             String?             @unique
+  senha             String?
+  email             String?             @unique
+  status            Int                 @default(1)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  RefreshToken      RefreshToken[]
+  perfil            Perfil[]
+  processos         Processos[]
+  rlUsuarioPrcessos RlUsuarioPrcessos[]
 
   @@map("usuario")
 }
@@ -49,4 +51,53 @@ model RefreshToken {
   usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@map("refresh_token")
+}
+
+model Processos {
+  id             String  @id @default(uuid())
+  numeroProcesso String
+  clienteName    String
+  numeroDoc      String
+  contato        String?
+  email          String?
+  descricao      String
+  idPastaDrive   String
+
+  usuarioCriacaoId String
+  statusId         String
+
+  status            StatusProcesso      @relation(fields: [statusId], references: [id])
+  usuario           Usuario             @relation(fields: [usuarioCriacaoId], references: [id])
+  rlUsuarioPrcessos RlUsuarioPrcessos[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime?           @updatedAt
+
+  @@map("processos")
+}
+
+model RlUsuarioPrcessos {
+  id String @id @default(uuid())
+
+  usuarioId  String
+  processoId String
+
+  status    Processos @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+
+  @@map("rlUsuarioPrcessos")
+}
+
+model StatusProcesso {
+  id           String  @id @default(uuid())
+  codigoStatus String  @unique
+  nomeStatus   String
+  ativo        Boolean @default(true)
+
+  processos Processos[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime?   @updatedAt
+
+  @@map("statusProcesso")
 }

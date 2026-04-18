@@ -15,7 +15,7 @@ class UpdateSenha {
       });
 
       return updateSenha;
-    } catch (error) {
+    } catch (error: any) {
       error.path = "src/models/internal/auth/updateSenha.js";
       throw error;
       // ... tratamento de erros ...
