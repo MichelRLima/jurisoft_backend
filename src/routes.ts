@@ -12,6 +12,7 @@ import googleDeleteFileController from "./controllers/googleDrive/googleDeleteFi
 import updatePerfilController from "./controllers/user/perfil/updatePerfilController";
 import createProcessoController from "./controllers/processos/createProcessoController";
 import googleListFilesController from "./controllers/googleDrive/googleListFilesController";
+import getAllProcessosController from "./controllers/processos/getAllProcessosController";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const routes = Router();
@@ -55,11 +56,21 @@ routes.post("/drive/mkdir", googleCreateFolderController.handle);
 ); */
 
 // Rota DELETE passando o ID como parâmetro de rota
-routes.delete("/drive/delete/:fileId", googleDeleteFileController.handle);
+routes.delete(
+  "/drive/delete/:fileId",
+  isAuthenticated,
+  googleDeleteFileController.handle,
+);
 
 routes.post(
   "/create/processo",
   upload.array("file"),
   createProcessoController.handle,
+);
+
+routes.post(
+  "/find/processos",
+  isAuthenticated,
+  getAllProcessosController.handle,
 );
 export default routes;

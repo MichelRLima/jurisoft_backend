@@ -3,7 +3,6 @@ import googleCreateFolder from "../googleDrive/googleCreateFolder";
 import logger from "../../utils/logger/logger";
 import googleUploadFile from "../googleDrive/googleUploadFile";
 import googlePermissionFolder from "../googleDrive/googlePermissionFolder";
-import { log } from "console";
 
 // Definimos o que o Model espera receber
 interface CreateProcessoRequest {
