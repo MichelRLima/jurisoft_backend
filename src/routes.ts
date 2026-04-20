@@ -1,12 +1,5 @@
 import { Router, Request, Response } from "express";
-import { google } from "googleapis";
-import fs from "fs"; // 1. ADICIONAR ESTA LINHA
-import path from "path"; // 2. ADICIONAR ESTA LINHA
-import {
-  oauth2Client,
-  DRIVE_SCOPES,
-} from "./services/googleDriveService/googleDriveService";
-const TOKEN_PATH = path.join(process.cwd(), "token.json"); // 3. ADICIONAR ESTA LINHA
+
 const createUserController = require("./controllers/user/createUserController");
 const loginUserController = require("./controllers/user/loginUserController");
 import { isAuthenticated } from "./middlewares/isAuthenticated";
@@ -17,6 +10,8 @@ import googleUploadFileController from "./controllers/googleDrive/googleUploadFi
 import multer from "multer";
 import googleDeleteFileController from "./controllers/googleDrive/googleDeleteFileController";
 import updatePerfilController from "./controllers/user/perfil/updatePerfilController";
+import createProcessoController from "./controllers/processos/createProcessoController";
+import googleListFilesController from "./controllers/googleDrive/googleListFilesController";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const routes = Router();
@@ -37,50 +32,34 @@ routes.put("/update/perfil", isAuthenticated, updatePerfilController.handle);
  * 1. Inicia o fluxo de autenticação
  * Acesse: http://localhost:3333/auth/google
  */
-routes.get("/auth/google", googleAuthController.handle);
+routes.get("/auth/google", isAuthenticated, googleAuthController.handle);
 
 /**
  * 2. Callback para onde o Google redireciona
  */
-routes.get("/oauth2callback", oauth2callbackController.handle);
+routes.get("/oauth2callback", isAuthenticated, oauth2callbackController.handle);
 
 /**
  * 3. Listagem dos arquivos da sua pasta específica
  */
-routes.get("/drive/list", async (req: Request, res: Response) => {
-  try {
-    // 5. ADICIONAR ESTA LÓGICA PARA LER O ARQUIVO SE A MEMÓRIA ESTIVER VAZIA:
-    if (!oauth2Client.credentials.access_token && fs.existsSync(TOKEN_PATH)) {
-      const savedToken = fs.readFileSync(TOKEN_PATH, "utf-8");
-      oauth2Client.setCredentials(JSON.parse(savedToken));
-    }
-
-    const drive = google.drive({ version: "v3", auth: oauth2Client });
-    const FOLDER_ID = "1N3mHm0GtfkV-gySkr6QlPKKmu1lNwq1-";
-
-    const response = await drive.files.list({
-      q: `'${FOLDER_ID}' in parents and trashed = false`,
-      fields: "files(id, name, mimeType, size)",
-      pageSize: 20,
-    });
-
-    res.json({ folder: FOLDER_ID, files: response.data.files });
-  } catch (error: any) {
-    res.status(401).json({ error: "Necessário autenticar" });
-  }
-});
+routes.get("/drive/list", googleListFilesController.handle);
 
 // 4. Rota para CRIAR uma pasta dentro da sua pasta principal
 routes.post("/drive/mkdir", googleCreateFolderController.handle);
 
 // Usamos upload.single('file') para dizer que esperamos UM arquivo chamado 'file'
-routes.post(
+/* routes.post(
   "/drive/upload",
   upload.single("file"),
   googleUploadFileController.handle,
-);
+); */
 
 // Rota DELETE passando o ID como parâmetro de rota
 routes.delete("/drive/delete/:fileId", googleDeleteFileController.handle);
 
+routes.post(
+  "/create/processo",
+  upload.array("file"),
+  createProcessoController.handle,
+);
 export default routes;

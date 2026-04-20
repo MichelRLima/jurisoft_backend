@@ -16,7 +16,15 @@ app.use(
 app.get("/", (req, res) => {
   res.send("API está funcionando!");
 });
+
 app.use(routes);
+app.use((err: any, req: any, res: any, next: any) => {
+  res.status(err.status || 500).json({
+    error: {
+      message: err.message || "Erro interno no servidor",
+    },
+  });
+});
 app.use(cors());
 async function startServer() {
   try {

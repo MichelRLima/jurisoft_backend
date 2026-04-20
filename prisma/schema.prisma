@@ -25,6 +25,7 @@ model Usuario {
   perfil            Perfil[]
   processos         Processos[]
   rlUsuarioPrcessos RlUsuarioPrcessos[]
+  permissaoDrive    PermissaoDrive[]
 
   @@map("usuario")
 }
@@ -55,7 +56,7 @@ model RefreshToken {
 
 model Processos {
   id             String  @id @default(uuid())
-  numeroProcesso String
+  numeroProcesso String  @unique
   clienteName    String
   numeroDoc      String
   contato        String?
@@ -100,4 +101,19 @@ model StatusProcesso {
   updatedAt DateTime?   @updatedAt
 
   @@map("statusProcesso")
+}
+
+model PermissaoDrive {
+  id           String @id @default(uuid())
+  idPastaDrive String
+  idPermissao  String
+  usuarioId    String
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+
+  @@unique([usuarioId, idPastaDrive])
+  @@map("permissaoDrive")
 }

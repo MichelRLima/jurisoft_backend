@@ -9,12 +9,14 @@ class GoogleUploadFileController {
         return;
       }
 
-      const result = await googleUploadFile.execute(req.file);
+      console.log(req.file);
 
-      res.status(201).json({
+      /*       const result = await googleUploadFile.execute(req.file); */
+
+      /*   res.status(201).json({
         message: "Arquivo enviado com sucesso!",
         file: result,
-      });
+      }); */
     } catch (error) {
       res.status(500).json({ error: "Erro ao fazer upload para o Drive" });
     }

@@ -3,11 +3,11 @@ import { oauth2Client } from "../../services/googleDriveService/googleDriveServi
 import { Readable } from "stream";
 import fs from "fs";
 import path from "path";
-const PARENT_FOLDER_ID = "1N3mHm0GtfkV-gySkr6QlPKKmu1lNwq1-";
-const TOKEN_PATH = path.join(process.cwd(), "token.json");
+/* const PARENT_FOLDER_ID = "1BGFE0BbV-LKntBYPuUAe3jWh4GvUdjPK";
+const TOKEN_PATH = path.join(process.cwd(), "token.json"); */
 
 class GoogleUploadFileModel {
-  async execute(file: any) {
+  async execute(file: any, folderId: string) {
     try {
       if (!oauth2Client.credentials || !oauth2Client.credentials.access_token) {
         throw new Error(
@@ -25,7 +25,7 @@ class GoogleUploadFileModel {
       const response = await drive.files.create({
         requestBody: {
           name: file.originalname,
-          parents: [PARENT_FOLDER_ID],
+          parents: [folderId],
         },
         media: {
           mimeType: file.mimetype,
@@ -38,14 +38,14 @@ class GoogleUploadFileModel {
 
       // 2. ADICIONAR PERMISSÃO PÚBLICA
       // Isso equivale a clicar em "Qualquer pessoa com o link" no Drive
-      await drive.permissions.create({
+      /*   await drive.permissions.create({
         fileId: fileId as string,
         requestBody: {
           role: "reader", // permissão de visualização
           type: "anyone", // para qualquer pessoa
         },
       });
-
+ */
       // 3. Buscar o link de visualização atualizado (opcional, mas recomendado)
       const updatedFile = await drive.files.get({
         fileId: fileId as string,

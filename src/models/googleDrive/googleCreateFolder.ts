@@ -1,9 +1,7 @@
 import { google } from "googleapis";
 import { oauth2Client } from "../../services/googleDriveService/googleDriveService";
-import fs from "fs";
 import path from "path";
 
-const TOKEN_PATH = path.join(process.cwd(), "token.json");
 class GoogleCreateFolderModel {
   async execute(folderName: string) {
     try {
@@ -13,6 +11,10 @@ class GoogleCreateFolderModel {
         throw new Error(
           "Não autorizado: Token do Google ausente. Faça login novamente.",
         );
+      }
+
+      if (!folderName) {
+        throw new Error("Nome da pasta ausente.");
       }
       const drive = google.drive({ version: "v3", auth: oauth2Client });
 
