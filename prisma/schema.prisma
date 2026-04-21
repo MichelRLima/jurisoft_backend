@@ -58,20 +58,20 @@ model Processos {
   id             String  @id @default(uuid())
   numeroProcesso String  @unique
   clienteName    String
-  numeroDoc      String
+  clienteDoc     String
   contato        String?
   email          String?
   descricao      String
-  idPastaDrive   String
+  pastaDriveId   String
 
   usuarioCriacaoId String
   statusId         String
 
-  status            StatusProcesso      @relation(fields: [statusId], references: [id])
-  usuario           Usuario             @relation(fields: [usuarioCriacaoId], references: [id])
-  rlUsuarioPrcessos RlUsuarioPrcessos[]
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime?           @updatedAt
+  status               StatusProcesso      @relation(fields: [statusId], references: [id])
+  usuarioCriacao       Usuario             @relation(fields: [usuarioCriacaoId], references: [id])
+  usuariosResponsaveis RlUsuarioPrcessos[]
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime?           @updatedAt
 
   @@map("processos")
 }
@@ -105,15 +105,15 @@ model StatusProcesso {
 
 model PermissaoDrive {
   id           String @id @default(uuid())
-  idPastaDrive String
-  idPermissao  String
+  pastaDriveId String
+  permissaoId  String
   usuarioId    String
 
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
 
-  @@unique([usuarioId, idPastaDrive])
+  @@unique([usuarioId, pastaDriveId])
   @@map("permissaoDrive")
 }

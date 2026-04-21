@@ -3,6 +3,7 @@ import googleCreateFolder from "../googleDrive/googleCreateFolder";
 import logger from "../../utils/logger/logger";
 import googleUploadFile from "../googleDrive/googleUploadFile";
 import googlePermissionFolder from "../googleDrive/googlePermissionFolder";
+import { connect } from "node:net";
 
 // Definimos o que o Model espera receber
 interface CreateProcessoRequest {
@@ -93,25 +94,26 @@ class CreateProcesso {
           return googleUploadFile.execute(file, pastaDrive.id); // Agora ele aceita!
         }),
       );
+      console.log(processo.status);
 
       logger.debug(`Criando processo no banco de dados`);
       const newProcesso = await prisma.processos.create({
         data: {
           numeroProcesso: processo.numeroProcesso,
           clienteName: processo.clienteName,
-          numeroDoc: processo.numeroDoc,
+          clienteDoc: processo.numeroDoc,
           descricao: processo.descricao,
           contato: processo.contato,
           email: processo.email,
-          idPastaDrive: pastaDrive?.id,
-          usuario: {
+          pastaDriveId: pastaDrive?.id,
+          usuarioCriacao: {
             connect: {
               id: userCreate?.id,
             },
           },
           status: {
             connect: {
-              codigoStatus: processo.status,
+              codigoStatus: processo.status, // O valor aqui deve ser "documentacao_pendente"
             },
           },
         },
@@ -121,14 +123,15 @@ class CreateProcesso {
       logger.debug(`Criando permissão de acesso ao processo no banco de dados`);
       await prisma.permissaoDrive.create({
         data: {
-          idPastaDrive: pastaDrive.id,
-          idPermissao: responseDrivePermissao.id,
+          pastaDriveId: pastaDrive.id,
+          permissaoId: responseDrivePermissao.id,
           usuarioId: userCreate.id,
         },
       });
       logger.debug(`Permissão de acesso ao processo criado no banco de dados`);
 
       logger.debug(`Finalizado abertura do processo: ${newProcesso.id}`);
+      console.log(newProcesso);
 
       return { success: true, message: "Processo recebido com sucesso" };
     } catch (error) {

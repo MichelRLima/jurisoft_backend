@@ -8,13 +8,24 @@ class UpdatePerfil {
     foto: string,
     nome: string,
     sobrenome: string,
+    email: string,
     telefone: string,
     usuarioId: string,
   ) {
     try {
+      console.log("recebendo foto", foto);
+
       // Usando transação apenas se você for reativar os logs depois.
       // Se for apenas o upsert, o transactionClient não é estritamente necessário.
       const result = await client.$transaction(async (transactionClient) => {
+        const updateUser = await transactionClient.usuario.update({
+          where: {
+            id: usuarioId,
+          },
+          data: {
+            email,
+          },
+        });
         // Se o usuarioId for @unique no schema.prisma, você pode fazer o upsert direto nele
         const updatePerfil = await transactionClient.perfil.upsert({
           where: {

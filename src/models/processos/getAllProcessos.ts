@@ -9,11 +9,11 @@ class GetAllPrcessos {
           id: true,
           numeroProcesso: true,
           clienteName: true,
-          numeroDoc: true,
+          clienteDoc: true,
           contato: true,
           email: true,
           descricao: true,
-          usuario: {
+          usuarioCriacao: {
             select: {
               id: true,
               email: true,
@@ -35,7 +35,7 @@ class GetAllPrcessos {
               nomeStatus: true,
             },
           },
-          rlUsuarioPrcessos: {
+          usuariosResponsaveis: {
             select: {
               usuario: {
                 select: {
@@ -56,7 +56,21 @@ class GetAllPrcessos {
           },
         },
       });
-
+      /* const formtAllProcessos = allProcessos.map((processo) => {
+  return {
+    id: processo.id,
+    numeroProcesso: processo.numeroProcesso,
+    clienteName: processo.clienteName,
+    numeroDoc: processo.numeroDoc,
+    contato: processo.contato,
+    email: processo.email,
+    descricao: processo.descricao,
+    status: processo.status,
+    usuarioCriação: processo.usuario,
+    rlUsuarioPrcessos: processo.rlUsuarioPrcessos,
+  };
+})
+ */
       return allProcessos;
     } catch (error) {
       console.error(error);

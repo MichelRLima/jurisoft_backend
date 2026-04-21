@@ -13,6 +13,7 @@ import updatePerfilController from "./controllers/user/perfil/updatePerfilContro
 import createProcessoController from "./controllers/processos/createProcessoController";
 import googleListFilesController from "./controllers/googleDrive/googleListFilesController";
 import getAllProcessosController from "./controllers/processos/getAllProcessosController";
+import findAllUserController from "./controllers/user/findAllUserController";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const routes = Router();
@@ -73,4 +74,6 @@ routes.post(
   isAuthenticated,
   getAllProcessosController.handle,
 );
+
+routes.get("/find/allUsers", isAuthenticated, findAllUserController.handle);
 export default routes;
