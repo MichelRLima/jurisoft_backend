@@ -54,14 +54,14 @@ CREATE TABLE "processos" (
 );
 
 -- CreateTable
-CREATE TABLE "rlUsuarioPrcessos" (
+CREATE TABLE "rlUsuarioProcesso" (
     "id" TEXT NOT NULL,
     "usuarioId" TEXT NOT NULL,
     "processoId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3),
 
-    CONSTRAINT "rlUsuarioPrcessos_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "rlUsuarioProcesso_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -119,10 +119,10 @@ ALTER TABLE "processos" ADD CONSTRAINT "processos_statusId_fkey" FOREIGN KEY ("s
 ALTER TABLE "processos" ADD CONSTRAINT "processos_usuarioCriacaoId_fkey" FOREIGN KEY ("usuarioCriacaoId") REFERENCES "usuario"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "rlUsuarioPrcessos" ADD CONSTRAINT "rlUsuarioPrcessos_processoId_fkey" FOREIGN KEY ("processoId") REFERENCES "processos"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "rlUsuarioProcesso" ADD CONSTRAINT "rlUsuarioProcesso_processoId_fkey" FOREIGN KEY ("processoId") REFERENCES "processos"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "rlUsuarioPrcessos" ADD CONSTRAINT "rlUsuarioPrcessos_usuarioId_fkey" FOREIGN KEY ("usuarioId") REFERENCES "usuario"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "rlUsuarioProcesso" ADD CONSTRAINT "rlUsuarioProcesso_usuarioId_fkey" FOREIGN KEY ("usuarioId") REFERENCES "usuario"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "permissaoDrive" ADD CONSTRAINT "permissaoDrive_usuarioId_fkey" FOREIGN KEY ("usuarioId") REFERENCES "usuario"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "permissaoDrive" ADD CONSTRAINT "permissaoDrive_usuarioId_fkey" FOREIGN KEY ("usuarioId") REFERENCES "usuario"("id") ON DELETE CASCADE ON UPDATE CASCADE;

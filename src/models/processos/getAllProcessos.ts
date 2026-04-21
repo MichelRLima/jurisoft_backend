@@ -56,22 +56,22 @@ class GetAllPrcessos {
           },
         },
       });
-      /* const formtAllProcessos = allProcessos.map((processo) => {
-  return {
-    id: processo.id,
-    numeroProcesso: processo.numeroProcesso,
-    clienteName: processo.clienteName,
-    numeroDoc: processo.numeroDoc,
-    contato: processo.contato,
-    email: processo.email,
-    descricao: processo.descricao,
-    status: processo.status,
-    usuarioCriação: processo.usuario,
-    rlUsuarioPrcessos: processo.rlUsuarioPrcessos,
-  };
-})
- */
-      return allProcessos;
+
+      const format = allProcessos.map((processo) => {
+        return {
+          ...processo,
+          usuariosResponsaveis: processo?.usuariosResponsaveis?.map(
+            (responsavel) => {
+              return {
+                ...responsavel?.usuario,
+                perfil: responsavel?.usuario?.perfil?.[0],
+              };
+            },
+          ),
+        };
+      });
+
+      return format;
     } catch (error) {
       console.error(error);
       throw error;

@@ -42,6 +42,7 @@ class CreateProcesso {
       ) {
         throw new Error("Dados insuficientes para abertura de processo");
       }
+      console.log(processo?.responsaveis);
 
       const userCreate = await prisma.usuario.findUnique({
         where: {
@@ -83,6 +84,34 @@ class CreateProcesso {
         `Permissão de compartilhamento adicionada para: ${userCreate.email}`,
       );
 
+      logger.debug(
+        "Adicionando permissão de compartilhamento para os responsáveis",
+      );
+
+      await Promise.all(
+        processo?.responsaveis?.map(async (responsavel: any) => {
+          if (!pastaDrive?.id) {
+            throw new Error("ID da pasta nao encontrado para o upload.");
+          }
+          const responseDrivePermissao =
+            await googlePermissionFolder.addPermission(
+              pastaDrive.id,
+              responsavel.email,
+              "writer",
+            );
+
+          if (!responseDrivePermissao?.id) {
+            throw new Error(
+              "Falha ao adicionar permissão de compartilhamento. O processo não pode ser salvo.",
+            );
+          }
+
+          logger.info(
+            `Permissão de compartilhamento adicionada para: ${responsavel.email}`,
+          );
+        }),
+      );
+
       await Promise.all(
         files.map(async (file) => {
           // Verificação explícita dentro do novo escopo
@@ -94,7 +123,6 @@ class CreateProcesso {
           return googleUploadFile.execute(file, pastaDrive.id); // Agora ele aceita!
         }),
       );
-      console.log(processo.status);
 
       logger.debug(`Criando processo no banco de dados`);
       const newProcesso = await prisma.processos.create({
@@ -111,9 +139,18 @@ class CreateProcesso {
               id: userCreate?.id,
             },
           },
+          usuariosResponsaveis: {
+            create: processo.responsaveis.map(
+              (responsavel: { id: string }) => ({
+                usuario: {
+                  connect: { id: responsavel?.id },
+                },
+              }),
+            ),
+          },
           status: {
             connect: {
-              codigoStatus: processo.status, // O valor aqui deve ser "documentacao_pendente"
+              codigoStatus: processo.status,
             },
           },
         },
@@ -121,7 +158,7 @@ class CreateProcesso {
       logger.debug(`Processo criado no banco de dados: ${newProcesso.id}`);
 
       logger.debug(`Criando permissão de acesso ao processo no banco de dados`);
-      await prisma.permissaoDrive.create({
+      await prisma.permissaoDrive?.create({
         data: {
           pastaDriveId: pastaDrive.id,
           permissaoId: responseDrivePermissao.id,
@@ -130,10 +167,92 @@ class CreateProcesso {
       });
       logger.debug(`Permissão de acesso ao processo criado no banco de dados`);
 
-      logger.debug(`Finalizado abertura do processo: ${newProcesso.id}`);
-      console.log(newProcesso);
+      logger.debug(
+        `Criando permissão de acesso aos responsáveis no banco de dados`,
+      );
+      await prisma.permissaoDrive.createMany({
+        data: processo.responsaveis?.map((responsavel: { id: string }) => ({
+          pastaDriveId: pastaDrive.id,
+          permissaoId: responseDrivePermissao.id,
+          usuarioId: responsavel.id,
+        })),
+      });
+      logger.debug(
+        `Permissão de acesso aos responsáveis criado no banco de dados`,
+      );
 
-      return { success: true, message: "Processo recebido com sucesso" };
+      logger.debug(`Finalizado abertura do processo: ${newProcesso.id}`);
+      const findProcesso = await prisma.processos.findUnique({
+        where: {
+          id: newProcesso.id,
+        },
+        select: {
+          id: true,
+          numeroProcesso: true,
+          clienteName: true,
+          clienteDoc: true,
+          contato: true,
+          email: true,
+          descricao: true,
+          usuarioCriacao: {
+            select: {
+              id: true,
+              email: true,
+              login: true,
+              perfil: {
+                select: {
+                  id: true,
+                  nome: true,
+                  sobrenome: true,
+                  foto: true,
+                },
+              },
+            },
+          },
+          status: {
+            select: {
+              id: true,
+              codigoStatus: true,
+              nomeStatus: true,
+            },
+          },
+          usuariosResponsaveis: {
+            select: {
+              usuario: {
+                select: {
+                  id: true,
+                  email: true,
+                  login: true,
+                  perfil: {
+                    select: {
+                      id: true,
+                      nome: true,
+                      sobrenome: true,
+                      foto: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+      if (!findProcesso) {
+        throw new Error("Processo nao encontrado");
+      }
+
+      const format = {
+        ...findProcesso,
+        usuariosResponsaveis: findProcesso.usuariosResponsaveis.map(
+          (responsavel) => {
+            return {
+              ...responsavel?.usuario,
+              perfil: responsavel?.usuario?.perfil?.[0],
+            };
+          },
+        ),
+      };
+      return format;
     } catch (error) {
       console.error("Erro no Model:", error);
       throw error;
