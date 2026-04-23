@@ -30,7 +30,6 @@ class FindAllUser {
           },
         };
       });
-      console.log(formatUsers);
 
       return formatUsers;
     } catch (error) {

@@ -70,6 +70,7 @@ model Processos {
   status               StatusProcesso      @relation(fields: [statusId], references: [id])
   usuarioCriacao       Usuario             @relation(fields: [usuarioCriacaoId], references: [id])
   usuariosResponsaveis RlUsuarioProcesso[]
+  permissaoesDrive     PermissaoDrive[]
   createdAt            DateTime            @default(now())
   updatedAt            DateTime?           @updatedAt
 
@@ -105,12 +106,13 @@ model StatusProcesso {
 
 model PermissaoDrive {
   id           String @id @default(uuid())
+  processoId   String
   pastaDriveId String
   permissaoId  String
   usuarioId    String
 
-  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-
+  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  processo  Processos @relation(fields: [processoId], references: [id], onDelete: Cascade)
   createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
 

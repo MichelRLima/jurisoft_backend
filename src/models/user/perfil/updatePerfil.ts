@@ -13,8 +13,6 @@ class UpdatePerfil {
     usuarioId: string,
   ) {
     try {
-      console.log("recebendo foto", foto);
-
       // Usando transação apenas se você for reativar os logs depois.
       // Se for apenas o upsert, o transactionClient não é estritamente necessário.
       const result = await client.$transaction(async (transactionClient) => {
