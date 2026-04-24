@@ -71,6 +71,7 @@ model Processos {
   usuarioCriacao       Usuario             @relation(fields: [usuarioCriacaoId], references: [id])
   usuariosResponsaveis RlUsuarioProcesso[]
   permissaoesDrive     PermissaoDrive[]
+  anexosProcesso       AnexosProcesso[]
   createdAt            DateTime            @default(now())
   updatedAt            DateTime?           @updatedAt
 
@@ -118,4 +119,19 @@ model PermissaoDrive {
 
   @@unique([usuarioId, pastaDriveId])
   @@map("permissaoDrive")
+}
+
+model AnexosProcesso {
+  id           String @id @default(uuid())
+  nome         String
+  link         String
+  anexoDriveId String
+  processoId   String
+
+  processo Processos @relation(fields: [processoId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
+
+  @@map("anexosProcesso")
 }

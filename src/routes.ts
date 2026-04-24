@@ -15,6 +15,7 @@ import googleListFilesController from "./controllers/googleDrive/googleListFiles
 import getAllProcessosController from "./controllers/processos/getAllProcessosController";
 import findAllUserController from "./controllers/user/findAllUserController";
 import deleteProcessoController from "./controllers/processos/deleteProcessoController";
+import getDetailsProcessoController from "./controllers/processos/getDetailsProcessoController";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const routes = Router();
@@ -80,6 +81,12 @@ routes.post(
   "/delete/processo",
   isAuthenticated,
   deleteProcessoController.handle,
+);
+
+routes.post(
+  "/find/processoDetails",
+  isAuthenticated,
+  getDetailsProcessoController.handle,
 );
 
 routes.get("/find/allUsers", isAuthenticated, findAllUserController.handle);

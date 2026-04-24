@@ -111,18 +111,6 @@ class CreateProcesso {
         }),
       );
 
-      await Promise.all(
-        files.map(async (file) => {
-          // Verificação explícita dentro do novo escopo
-          if (!pastaDrive?.id) {
-            throw new Error("ID da pasta não encontrado para o upload.");
-          }
-
-          logger.debug(`Upload do arquivo ${file.originalname}`);
-          return googleUploadFile.execute(file, pastaDrive.id); // Agora ele aceita!
-        }),
-      );
-
       logger.debug(`Criando processo no banco de dados`);
       const result = await prisma.$transaction(async (prisma) => {
         if (!pastaDrive?.id || !responseDrivePermissao.id) {
@@ -159,6 +147,43 @@ class CreateProcesso {
           },
         });
         logger.debug(`Processo criado no banco de dados: ${newProcesso.id}`);
+        if (files.length > 0) {
+          logger.debug(`Identificado ${files?.length} arquivos para upload`);
+
+          await Promise.all(
+            files.map(async (file) => {
+              // Verificação explícita dentro do novo escopo
+              if (!pastaDrive?.id) {
+                throw new Error("ID da pasta não encontrado para o upload.");
+              }
+
+              logger.debug(`Upload do arquivo ${file.originalname}`);
+              const responseDriveUpload = await googleUploadFile.execute(
+                file,
+                pastaDrive.id,
+              );
+              if (
+                !responseDriveUpload?.id ||
+                !responseDriveUpload?.name ||
+                !responseDriveUpload?.webContentLink
+              ) {
+                throw new Error("Arquivo incosistente no Google Drive.");
+              }
+              await prisma.anexosProcesso.create({
+                data: {
+                  nome: responseDriveUpload?.name,
+                  anexoDriveId: responseDriveUpload?.id,
+                  processoId: newProcesso.id,
+                  link: responseDriveUpload?.webContentLink,
+                },
+              });
+
+              return responseDriveUpload;
+            }),
+          );
+        } else {
+          logger.debug(`Nenhum arquivo identificado para upload`);
+        }
 
         logger.debug(
           `Criando permissão de acesso ao processo no banco de dados`,

@@ -22,7 +22,7 @@ class GooglePermissionModel {
 
       const response = await drive.permissions.create({
         fileId: fileOrFolderId,
-        sendNotificationEmail: true, // Envia um e-mail automático do Google avisando a pessoa
+        sendNotificationEmail: false, // Envia um e-mail automático do Google avisando a pessoa
         requestBody: {
           type: "user",
           role: role,

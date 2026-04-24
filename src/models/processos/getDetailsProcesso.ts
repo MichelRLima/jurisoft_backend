@@ -1,10 +1,19 @@
 import { PrismaClient } from "@prisma/client";
+import { log } from "console";
 
+// Mantenha a instância do cliente fora da classe para ser reutilizada (Singleton)
 const prisma = new PrismaClient();
-class GetAllPrcessos {
-  async execute() {
+
+class GetDetailsProcesso {
+  async execute(processoId: string) {
     try {
-      const allProcessos = await prisma.processos.findMany({
+      if (!processoId) {
+        throw new Error("Id do processo ausente.");
+      }
+      const detailsProcesso = await prisma.processos.findUnique({
+        where: {
+          id: processoId,
+        },
         select: {
           id: true,
           numeroProcesso: true,
@@ -54,36 +63,24 @@ class GetAllPrcessos {
               },
             },
           },
-          _count: {
+          anexosProcesso: {
             select: {
-              anexosProcesso: true,
+              id: true,
+              nome: true,
+              link: true,
             },
           },
         },
       });
 
-      const format = allProcessos.map((processo) => {
-        return {
-          ...processo,
-          anexos: processo?._count?.anexosProcesso || 0,
-          usuariosResponsaveis: processo?.usuariosResponsaveis?.map(
-            (responsavel) => {
-              return {
-                ...responsavel?.usuario,
-                perfil: responsavel?.usuario?.perfil?.[0],
-              };
-            },
-          ),
-        };
-      });
-
-      return format;
+      return detailsProcesso;
     } catch (error) {
       console.error(error);
       throw error;
     } finally {
+      await prisma.$disconnect();
     }
   }
 }
 
-export default new GetAllPrcessos();
+export default new GetDetailsProcesso();
