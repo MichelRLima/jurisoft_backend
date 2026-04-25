@@ -5,7 +5,7 @@ import { Payload } from "../middlewares/auth/Payload";
 export function isAuthenticated(
   request: Request,
   response: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void {
   const authToken = request.headers.authorization;
 

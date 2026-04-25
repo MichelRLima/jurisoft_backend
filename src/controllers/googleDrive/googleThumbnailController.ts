@@ -4,17 +4,16 @@ import googleThumbnail from "../../models/googleDrive/googleThumbnail";
 class GoogleThumbnailsController {
   async handle(req: Request, res: Response): Promise<void> {
     try {
-      // Dica: Em produção, você provavelmente pegará o id via query: req.query.id
-      const url =
-        "https://drive.google.com/uc?id=1mDmBxilf8iTlYcp8MPzEhdllc9VhJDoo&export=download";
-      const fileId = new URL(url).searchParams.get("id");
-
+      const { fileId } = req.query; // Captura o ID da URL
       if (!fileId) {
         res.status(400).json({ error: "O ID do arquivo é obrigatório." });
         return;
       }
 
-      const { buffer, contentType } = await googleThumbnail.execute(fileId);
+      console.log("fileId", fileId);
+      const { buffer, contentType } = await googleThumbnail.execute(
+        fileId as string,
+      );
 
       // Configura os headers de resposta para imagem
       res.set("Content-Type", contentType as string);

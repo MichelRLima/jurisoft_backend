@@ -92,7 +92,7 @@ routes.post(
 
 routes.get(
   "/anexo/thumbnail",
-
+  isAuthenticated,
   googleThumbnailController.handle,
 );
 
