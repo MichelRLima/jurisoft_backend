@@ -162,10 +162,11 @@ class CreateProcesso {
                 file,
                 pastaDrive.id,
               );
+
               if (
                 !responseDriveUpload?.id ||
                 !responseDriveUpload?.name ||
-                !responseDriveUpload?.webContentLink
+                !responseDriveUpload?.webViewLink
               ) {
                 throw new Error("Arquivo incosistente no Google Drive.");
               }
@@ -174,7 +175,7 @@ class CreateProcesso {
                   nome: responseDriveUpload?.name,
                   anexoDriveId: responseDriveUpload?.id,
                   processoId: newProcesso.id,
-                  link: responseDriveUpload?.webContentLink,
+                  link: responseDriveUpload?.webViewLink,
                 },
               });
 
@@ -269,6 +270,11 @@ class CreateProcesso {
                 },
               },
             },
+            _count: {
+              select: {
+                anexosProcesso: true,
+              },
+            },
           },
         });
         if (!findProcesso) {
@@ -277,6 +283,7 @@ class CreateProcesso {
 
         const format = {
           ...findProcesso,
+          anexos: findProcesso?._count?.anexosProcesso || 0,
           usuariosResponsaveis: findProcesso.usuariosResponsaveis.map(
             (responsavel) => {
               return {

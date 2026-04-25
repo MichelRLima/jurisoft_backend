@@ -1,10 +1,6 @@
 import { google } from "googleapis";
 import { oauth2Client } from "../../services/googleDriveService/googleDriveService";
 import { Readable } from "stream";
-import fs from "fs";
-import path from "path";
-/* const PARENT_FOLDER_ID = "1BGFE0BbV-LKntBYPuUAe3jWh4GvUdjPK";
-const TOKEN_PATH = path.join(process.cwd(), "token.json"); */
 
 class GoogleUploadFileModel {
   async execute(file: any, folderId: string) {
