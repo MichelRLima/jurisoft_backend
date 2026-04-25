@@ -16,6 +16,7 @@ import getAllProcessosController from "./controllers/processos/getAllProcessosCo
 import findAllUserController from "./controllers/user/findAllUserController";
 import deleteProcessoController from "./controllers/processos/deleteProcessoController";
 import getDetailsProcessoController from "./controllers/processos/getDetailsProcessoController";
+import googleThumbnailController from "./controllers/googleDrive/googleThumbnailController";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const routes = Router();
@@ -87,6 +88,12 @@ routes.post(
   "/find/processoDetails",
   isAuthenticated,
   getDetailsProcessoController.handle,
+);
+
+routes.get(
+  "/anexo/thumbnail",
+
+  googleThumbnailController.handle,
 );
 
 routes.get("/find/allUsers", isAuthenticated, findAllUserController.handle);

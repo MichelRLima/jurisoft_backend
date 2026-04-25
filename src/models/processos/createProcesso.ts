@@ -4,6 +4,7 @@ import logger from "../../utils/logger/logger";
 import googleUploadFile from "../googleDrive/googleUploadFile";
 import googlePermissionFolder from "../googleDrive/googlePermissionFolder";
 import { connect } from "node:net";
+import { log } from "node:console";
 
 // Definimos o que o Model espera receber
 interface CreateProcessoRequest {
@@ -162,6 +163,7 @@ class CreateProcesso {
                 file,
                 pastaDrive.id,
               );
+              console.log(responseDriveUpload);
 
               if (
                 !responseDriveUpload?.id ||
