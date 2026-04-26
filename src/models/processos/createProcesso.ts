@@ -163,7 +163,6 @@ class CreateProcesso {
                 file,
                 pastaDrive.id,
               );
-              console.log(responseDriveUpload);
 
               if (
                 !responseDriveUpload?.id ||
