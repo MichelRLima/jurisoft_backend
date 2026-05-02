@@ -22,6 +22,7 @@ class GetDetailsProcesso {
           contato: true,
           email: true,
           descricao: true,
+          createdAt: true,
           usuarioCriacao: {
             select: {
               id: true,

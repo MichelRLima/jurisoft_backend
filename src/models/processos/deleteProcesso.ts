@@ -4,7 +4,6 @@ import logger from "../../utils/logger/logger";
 
 // Mantenha a instância do cliente fora da classe para ser reutilizada (Singleton)
 const prisma = new PrismaClient();
-
 class DeleteProcesso {
   async execute(processoId: string) {
     try {

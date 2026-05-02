@@ -18,6 +18,7 @@ import deleteProcessoController from "./controllers/processos/deleteProcessoCont
 import getDetailsProcessoController from "./controllers/processos/getDetailsProcessoController";
 import googleThumbnailController from "./controllers/googleDrive/googleThumbnailController";
 import deleteAnexoProcessoController from "./controllers/processos/deleteAnexoProcessoController";
+import editProcessoController from "./controllers/processos/editProcessoController";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const routes = Router();
@@ -84,6 +85,8 @@ routes.post(
   isAuthenticated,
   deleteProcessoController.handle,
 );
+
+routes.post("/edit/processo", isAuthenticated, editProcessoController.handle);
 
 routes.post(
   "/find/processoDetails",
