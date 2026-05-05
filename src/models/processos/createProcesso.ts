@@ -288,6 +288,8 @@ class CreateProcesso {
     } catch (error) {
       console.error("Erro no Model:", error);
       throw error;
+    } finally {
+      await prisma.$disconnect();
     }
   }
 }
