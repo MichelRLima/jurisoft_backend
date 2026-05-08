@@ -20,6 +20,7 @@ import googleThumbnailController from "./controllers/googleDrive/googleThumbnail
 import deleteAnexoProcessoController from "./controllers/processos/deleteAnexoProcessoController";
 import editProcessoController from "./controllers/processos/editProcessoController";
 import createAnexoController from "./controllers/processos/createAnexoController";
+import updateUserController from "./controllers/user/perfil/updateUserController";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const routes = Router();
@@ -33,7 +34,7 @@ routes.post("/createUser", createUserController.handle);
 routes.post("/login", loginUserController.handle);
 
 routes.put("/update/perfil", isAuthenticated, updatePerfilController.handle);
-
+routes.post("/update/user", isAuthenticated, updateUserController.handle);
 // --- NOVAS ROTAS DO GOOGLE DRIVE ---
 
 /**
