@@ -17,6 +17,7 @@ interface Processo {
   numeroProcesso: string;
   clienteName: string;
   status: string;
+  tipo: string;
   usuariosResponsaveis: UsuarioResponsavel[];
 }
 // Mantenha a instância do cliente fora da classe para ser reutilizada (Singleton)
@@ -80,6 +81,11 @@ class EditProcesso {
           status: {
             connect: { codigoStatus: processo.status },
           },
+          tipo: {
+            connect: {
+              codigoTipo: processo.tipo,
+            },
+          },
         },
         include: {
           usuariosResponsaveis: {
@@ -106,6 +112,13 @@ class EditProcesso {
               codigoStatus: true,
               id: true,
               nomeStatus: true,
+            },
+          },
+          tipo: {
+            select: {
+              codigoTipo: true,
+              id: true,
+              nomeTipo: true,
             },
           },
         },

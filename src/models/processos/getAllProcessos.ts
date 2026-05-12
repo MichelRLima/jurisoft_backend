@@ -36,6 +36,13 @@ class GetAllPrcessos {
               nomeStatus: true,
             },
           },
+          tipo: {
+            select: {
+              id: true,
+              codigoTipo: true,
+              nomeTipo: true,
+            },
+          },
           usuariosResponsaveis: {
             select: {
               usuario: {

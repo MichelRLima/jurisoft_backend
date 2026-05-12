@@ -28,6 +28,44 @@ const initializeStatusProcesso = async () => {
       },
     ];
 
+    const tiposProcessoInitialize = [
+      {
+        nomeTipo: "Civil",
+        codigoTipo: "civil",
+        status: true,
+      },
+      {
+        nomeTipo: "Trabalhista",
+        codigoTipo: "trabalhista",
+        status: true,
+      },
+      {
+        nomeTipo: "Penal/Criminal",
+        codigoTipo: "penal",
+        status: true,
+      },
+      {
+        nomeTipo: "Administrativo",
+        codigoTipo: "administrativo",
+        status: true,
+      },
+      {
+        nomeTipo: "Consumidor",
+        codigoTipo: "consumidor",
+        status: true,
+      },
+      {
+        nomeTipo: "Previdenciário",
+        codigoTipo: "previdenciario",
+        status: true,
+      },
+      {
+        nomeTipo: "Tributário",
+        codigoTipo: "tributario",
+        status: true,
+      },
+    ];
+
     console.log("🔄 Sincronizando status dos processos...");
 
     // 1. UPSERT (Update ou Insert): Para cada item no seu array
@@ -46,22 +84,20 @@ const initializeStatusProcesso = async () => {
         },
       });
     }
-
-    // 2. DELETE: Remove do banco o que não está na sua lista do código
-    // Pegamos todos os códigos que você quer manter
-    const codigosManter = statusInitialize?.map((s) => s.codigoStatus);
-
-    // Deletamos qualquer registro cujo codigoStatus NÃO esteja na lista acima
-    const deletados = await prisma.statusProcesso.deleteMany({
-      where: {
-        codigoStatus: {
-          notIn: codigosManter,
+    console.log("🔄 Sincronizando tipos dos processos...");
+    for (const item of tiposProcessoInitialize) {
+      await prisma.tipoProcesso.upsert({
+        where: { codigoTipo: item.codigoTipo },
+        update: {
+          nomeTipo: item.nomeTipo,
+          ativo: item.status,
         },
-      },
-    });
-
-    if (deletados.count > 0) {
-      console.log(`🗑️  ${deletados.count} status antigos removidos.`);
+        create: {
+          nomeTipo: item.nomeTipo,
+          codigoTipo: item.codigoTipo,
+          ativo: item.status,
+        },
+      });
     }
   } catch (error) {
     console.error("❌ Erro ao inicializar status:", error);

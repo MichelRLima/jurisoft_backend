@@ -25,10 +25,13 @@ class CreateProcesso {
         !processo?.numeroDoc ||
         !processo?.numeroProcesso ||
         !processo?.status ||
-        !processo?.descricao
+        !processo?.descricao ||
+        !processo?.tipo
       ) {
         throw new Error("Dados insuficientes para abertura de processo");
       }
+
+      console.log(processo);
 
       const userCreate = await prisma.usuario.findUnique({
         where: {
@@ -129,6 +132,11 @@ class CreateProcesso {
             status: {
               connect: {
                 codigoStatus: processo.status,
+              },
+            },
+            tipo: {
+              connect: {
+                codigoTipo: processo?.tipo,
               },
             },
           },

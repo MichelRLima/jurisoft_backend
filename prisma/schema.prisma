@@ -64,10 +64,11 @@ model Processos {
   descricao      String
   pastaDriveId   String
 
-  usuarioCriacaoId String
-  statusId         String
-
+  usuarioCriacaoId     String
+  statusId             String
+  tipoId               String
   status               StatusProcesso      @relation(fields: [statusId], references: [id])
+  tipo                 TipoProcesso        @relation(fields: [tipoId], references: [id])
   usuarioCriacao       Usuario             @relation(fields: [usuarioCriacaoId], references: [id])
   usuariosResponsaveis RlUsuarioProcesso[]
   permissaoesDrive     PermissaoDrive[]
@@ -103,6 +104,19 @@ model StatusProcesso {
   updatedAt DateTime?   @updatedAt
 
   @@map("statusProcesso")
+}
+
+model TipoProcesso {
+  id         String  @id @default(uuid())
+  codigoTipo String  @unique
+  nomeTipo   String
+  ativo      Boolean @default(true)
+
+  processos Processos[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime?   @updatedAt
+
+  @@map("tipoProcesso")
 }
 
 model PermissaoDrive {
