@@ -21,20 +21,34 @@ import deleteAnexoProcessoController from "./controllers/processos/deleteAnexoPr
 import editProcessoController from "./controllers/processos/editProcessoController";
 import createAnexoController from "./controllers/processos/createAnexoController";
 import updateUserController from "./controllers/user/perfil/updateUserController";
+import updatePasswordController from "./controllers/user/updatePasswordController";
+import ForgotPasswordController from "./controllers/user/ForgotPasswordController";
+import forgotResetPasswordController from "./controllers/user/forgotResetPasswordController";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const routes = Router();
 
 // Rota simples de teste
-routes.get("/ping", isAuthenticated, (req: Request, res: Response) => {
+routes.get("/ping", (req: Request, res: Response) => {
   res.json({ message: "pong 🏓" });
 });
+
+// Rota para o usuário digitar o email e receber o código de 4 dígitos
+routes.post("/auth/forgotPassword", ForgotPasswordController.handle);
+
+// Rota onde o usuário envia o email, o código recebido e a senha nova
+routes.post("/auth/forgotResetPassword", forgotResetPasswordController.handle);
 
 routes.post("/createUser", createUserController.handle);
 routes.post("/login", loginUserController.handle);
 
 routes.put("/update/perfil", isAuthenticated, updatePerfilController.handle);
 routes.post("/update/user", isAuthenticated, updateUserController.handle);
+routes.post(
+  "/update/password",
+  isAuthenticated,
+  updatePasswordController.handle,
+);
 // --- NOVAS ROTAS DO GOOGLE DRIVE ---
 
 /**
