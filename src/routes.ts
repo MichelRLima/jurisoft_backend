@@ -24,6 +24,9 @@ import updateUserController from "./controllers/user/perfil/updateUserController
 import updatePasswordController from "./controllers/user/updatePasswordController";
 import ForgotPasswordController from "./controllers/user/ForgotPasswordController";
 import forgotResetPasswordController from "./controllers/user/forgotResetPasswordController";
+import createClienteController from "./controllers/clientes/createClienteController";
+import getClientesController from "./controllers/clientes/getClientesController";
+import deleteClienteController from "./controllers/clientes/deleteClienteController";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const routes = Router();
@@ -130,4 +133,10 @@ routes.post(
 );
 
 routes.get("/find/allUsers", isAuthenticated, findAllUserController.handle);
+
+/* CLIENTE */
+routes.post("/create/cliente", isAuthenticated, createClienteController.handle);
+routes.get("/find/clientes", isAuthenticated, getClientesController.handle);
+routes.post("/delete/cliente", isAuthenticated, deleteClienteController.handle);
+
 export default routes;

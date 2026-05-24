@@ -14,15 +14,62 @@ interface CreateProcessoRequest {
   usuarioId: string;
 }
 
+// Interface auxiliar para forçar o TS a enxergar os relacionamentos do select dentro da transaction
+interface IFindProcessoResult {
+  id: string;
+  numeroProcesso: string;
+  descricao: string;
+  usuarioCriacao: {
+    id: string;
+    email: string;
+    login: string;
+    perfil: {
+      id: string;
+      nome: string;
+      sobrenome: string;
+      foto: string | null;
+    } | null;
+  };
+  status: {
+    id: string;
+    codigoStatus: string;
+    nomeStatus: string;
+  };
+  tipo: {
+    id: string;
+    codigoTipo: string;
+    nomeTipo: string;
+  };
+  usuariosResponsaveis: {
+    usuario: {
+      id: string;
+      email: string;
+      login: string;
+      perfil: {
+        id: string;
+        nome: string;
+        sobrenome: string;
+        foto: string | null;
+      } | null;
+    };
+  }[];
+  cliente: {
+    id: string;
+    nome: string;
+    documento: string; // Corrigido aqui também
+  };
+  _count: {
+    anexosProcesso: number;
+  };
+}
+
 const prisma = new PrismaClient();
 
 class CreateProcesso {
-  // Tipamos o objeto de entrada
   async execute({ processo, files = [], usuarioId }: CreateProcessoRequest) {
     try {
       if (
-        !processo?.clienteName ||
-        !processo?.numeroDoc ||
+        !processo?.clienteId ||
         !processo?.numeroProcesso ||
         !processo?.status ||
         !processo?.descricao ||
@@ -30,8 +77,6 @@ class CreateProcesso {
       ) {
         throw new Error("Dados insuficientes para abertura de processo");
       }
-
-      console.log(processo);
 
       const userCreate = await prisma.usuario.findUnique({
         where: {
@@ -43,7 +88,17 @@ class CreateProcesso {
         throw new Error("Usuário nao encontrado ou sem email");
       }
 
-      const pastaName = `Processo: ${formatarProcesso(processo?.numeroProcesso)} - ${processo?.clienteName}`;
+      const cliente = await prisma.clientes.findUnique({
+        where: {
+          id: processo?.clienteId,
+        },
+      });
+
+      if (!cliente) {
+        throw new Error("Cliente não encontrado");
+      }
+
+      const pastaName = `Processo: ${formatarProcesso(processo?.numeroProcesso)} - ${cliente?.nome}`;
       logger.debug(`Criando pasta do processo: ${pastaName}`);
       const pastaDrive = await googleCreateFolder.execute(pastaName);
       if (!pastaDrive || !pastaDrive.id) {
@@ -109,11 +164,7 @@ class CreateProcesso {
         const newProcesso = await prisma.processos.create({
           data: {
             numeroProcesso: processo.numeroProcesso,
-            clienteName: processo.clienteName,
-            clienteDoc: processo.numeroDoc,
             descricao: processo.descricao,
-            contato: processo.contato,
-            email: processo.email,
             pastaDriveId: pastaDrive?.id,
             usuarioCriacao: {
               connect: {
@@ -139,6 +190,11 @@ class CreateProcesso {
                 codigoTipo: processo?.tipo,
               },
             },
+            cliente: {
+              connect: {
+                id: cliente?.id,
+              },
+            },
           },
         });
         logger.debug(`Processo criado no banco de dados: ${newProcesso.id}`);
@@ -147,7 +203,6 @@ class CreateProcesso {
 
           await Promise.all(
             files.map(async (file) => {
-              // Verificação explícita dentro do novo escopo
               if (!pastaDrive?.id) {
                 throw new Error("ID da pasta não encontrado para o upload.");
               }
@@ -212,17 +267,15 @@ class CreateProcesso {
         );
 
         logger.debug(`Finalizado abertura do processo: ${newProcesso.id}`);
-        const findProcesso = await prisma.processos.findUnique({
+
+        // Atribuímos explicitamente a nossa interface de resultado no findUnique (as IFindProcessoResult)
+        const findProcesso = (await prisma.processos.findUnique({
           where: {
             id: newProcesso.id,
           },
           select: {
             id: true,
             numeroProcesso: true,
-            clienteName: true,
-            clienteDoc: true,
-            contato: true,
-            email: true,
             descricao: true,
             usuarioCriacao: {
               select: {
@@ -246,6 +299,13 @@ class CreateProcesso {
                 nomeStatus: true,
               },
             },
+            tipo: {
+              select: {
+                id: true,
+                codigoTipo: true,
+                nomeTipo: true,
+              },
+            },
             usuariosResponsaveis: {
               select: {
                 usuario: {
@@ -265,13 +325,21 @@ class CreateProcesso {
                 },
               },
             },
+            cliente: {
+              select: {
+                id: true,
+                nome: true,
+                documento: true,
+              },
+            },
             _count: {
               select: {
                 anexosProcesso: true,
               },
             },
           },
-        });
+        })) as unknown as IFindProcessoResult; // CORREÇÃO 2: Cast necessário para o escopo de transaction
+
         if (!findProcesso) {
           throw new Error("Processo nao encontrado");
         }
@@ -279,11 +347,12 @@ class CreateProcesso {
         const format = {
           ...findProcesso,
           anexos: findProcesso?._count?.anexosProcesso || 0,
-          usuariosResponsaveis: findProcesso.usuariosResponsaveis.map(
-            (responsavel) => {
+          usuariosResponsaveis: findProcesso?.usuariosResponsaveis?.map(
+            (responsavel: any) => {
+              // CORREÇÃO 3: Tipado como 'any' para evitar erro TS7006
               return {
                 ...responsavel?.usuario,
-                perfil: responsavel?.usuario?.perfil?.[0],
+                perfil: responsavel?.usuario?.perfil,
               };
             },
           ),

@@ -98,24 +98,17 @@ class LoginUser {
       const response = await client.$transaction(async (tx) => {
         const token = await generateTokenProvider.execute(userAlreadyExists.id);
 
+        // Deleta usando o tx da transação (Correto)
         await tx.refreshToken.deleteMany({
           where: { usuarioId: userAlreadyExists.id },
         });
 
+        // 💡 AGORA REPASSA O TX AQUI PARA O CONTEXTO SER O MESMO!
         const refreshToken = await generateRefreshToken.execute(
           userAlreadyExists.id,
+          tx, // <-- A mágica acontece aqui
         );
 
-        /*  const logs = await logLoginCliente.execute(
-          userAlreadyExists.id,
-          ipAddress,
-          1, // Sucesso
-          deviceData.browser.name,
-          deviceData.os.name
-        ); */
-
-        /*   cache.del(`${userAlreadyExists.id}`);
-         */
         return { token, refreshToken };
       });
 

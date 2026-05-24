@@ -1,15 +1,18 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import dayjs from "dayjs";
 
 const client = new PrismaClient();
 
 class GenerateRefreshToken {
-  async execute(usuarioId: string) {
-    // Define a expiração para 6 meses (M) a partir de agora em formato Unix Timestamp
+  // 💡 Recebe o tx (Prisma.TransactionClient) como segundo parâmetro opcional
+  async execute(usuarioId: string, tx?: Prisma.TransactionClient) {
     const expiresIn = dayjs().add(6, "M").unix();
 
+    // 💡 Se o tx existir, usa ele. Se não, usa o client padrão da classe.
+    const prismaExecutor = tx || client;
+
     try {
-      const refreshToken = await client.refreshToken.create({
+      const refreshToken = await prismaExecutor.refreshToken.create({
         data: {
           usuarioId,
           expiresIn,

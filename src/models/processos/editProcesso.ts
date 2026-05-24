@@ -19,6 +19,7 @@ interface Processo {
   status: string;
   tipo: string;
   usuariosResponsaveis: UsuarioResponsavel[];
+  clienteId: string;
 }
 // Mantenha a instância do cliente fora da classe para ser reutilizada (Singleton)
 const prisma = new PrismaClient();
@@ -36,6 +37,16 @@ class EditProcesso {
 
       if (!firstProcesso) {
         throw new Error("Processo nao encontrado");
+      }
+
+      const cliente = await prisma.clientes.findUnique({
+        where: {
+          id: processo.clienteId,
+        },
+      });
+
+      if (!cliente) {
+        throw new Error("Cliente nao encontrado");
       }
       // 1. Pegamos os IDs atuais que estão no banco (você já tem o firstProcesso do seu código)
       const idsAtuais = firstProcesso.usuariosResponsaveis?.map(
@@ -59,13 +70,8 @@ class EditProcesso {
       const response = await prisma.processos.update({
         where: { id: processo.id },
         data: {
-          contato: processo.contato,
           descricao: processo.descricao,
-          email: processo.email,
-          clienteDoc: processo.clienteDoc,
           numeroProcesso: processo.numeroProcesso,
-          clienteName: processo.clienteName,
-
           usuariosResponsaveis: {
             // 1. Remove apenas as associações que não estão mais na lista
             // Usamos deleteMany com um filtro nos IDs dos usuários
@@ -77,7 +83,6 @@ class EditProcesso {
               usuarioId: id,
             })),
           },
-
           status: {
             connect: { codigoStatus: processo.status },
           },
@@ -86,7 +91,11 @@ class EditProcesso {
               codigoTipo: processo.tipo,
             },
           },
+          cliente: {
+            connect: { id: cliente.id },
+          },
         },
+
         include: {
           usuariosResponsaveis: {
             select: {

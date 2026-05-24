@@ -8,10 +8,6 @@ class GetAllPrcessos {
         select: {
           id: true,
           numeroProcesso: true,
-          clienteName: true,
-          clienteDoc: true,
-          contato: true,
-          email: true,
           descricao: true,
           createdAt: true,
           usuarioCriacao: {
@@ -60,6 +56,13 @@ class GetAllPrcessos {
                   },
                 },
               },
+            },
+          },
+          cliente: {
+            select: {
+              id: true,
+              nome: true,
+              documento: true,
             },
           },
           _count: {

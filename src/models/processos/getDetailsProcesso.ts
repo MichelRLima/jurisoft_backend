@@ -17,10 +17,6 @@ class GetDetailsProcesso {
         select: {
           id: true,
           numeroProcesso: true,
-          clienteName: true,
-          clienteDoc: true,
-          contato: true,
-          email: true,
           descricao: true,
           createdAt: true,
           usuarioCriacao: {
@@ -76,6 +72,22 @@ class GetDetailsProcesso {
               id: true,
               nome: true,
               link: true,
+            },
+          },
+          cliente: {
+            select: {
+              id: true,
+              nome: true,
+              documento: true,
+              contato: true,
+              email: true,
+              cep: true,
+              logradouro: true,
+              numero: true,
+              complemento: true,
+              bairro: true,
+              cidade: true,
+              estado: true,
             },
           },
         },
