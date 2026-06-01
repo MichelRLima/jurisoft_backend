@@ -1,7 +1,5 @@
 import { PrismaClient } from "@prisma/client";
 import logger from "../../utils/logger/logger";
-import googleUpdateNameFolder from "../googleDrive/googleUpdateNameFolder";
-import formatarProcesso from "../../utils/formatarProcesso/formatarProcesso";
 
 interface UsuarioResponsavel {
   id: string;
@@ -21,11 +19,14 @@ interface Processo {
   usuariosResponsaveis: UsuarioResponsavel[];
   clienteId: string;
 }
-// Mantenha a instância do cliente fora da classe para ser reutilizada (Singleton)
+
 const prisma = new PrismaClient();
+
 class EditProcesso {
   async execute(processo: Processo) {
     try {
+      logger.debug("Iniciando edição do processo", processo.id);
+
       const firstProcesso = await prisma.processos.findUnique({
         where: {
           id: processo.id,
@@ -36,7 +37,7 @@ class EditProcesso {
       });
 
       if (!firstProcesso) {
-        throw new Error("Processo nao encontrado");
+        throw new Error("Processo não encontrado");
       }
 
       const cliente = await prisma.clientes.findUnique({
@@ -46,39 +47,37 @@ class EditProcesso {
       });
 
       if (!cliente) {
-        throw new Error("Cliente nao encontrado");
+        throw new Error("Cliente não encontrado");
       }
-      // 1. Pegamos os IDs atuais que estão no banco (você já tem o firstProcesso do seu código)
+
+      // 1. Pegamos os IDs atuais que estão no banco
       const idsAtuais = firstProcesso.usuariosResponsaveis?.map(
         (u) => u.usuarioId,
       );
 
-      // 2. Pegamos os IDs que vieram da requisição (ajuste conforme a estrutura do seu objeto)
+      // 2. Pegamos os IDs que vieram da requisição
       const idsNovos = processo.usuariosResponsaveis?.map((u) =>
         typeof u === "string" ? u : u.id,
       );
 
       // 3. Calculamos quem deve ser removido e quem deve ser adicionado
-      const paraRemover = idsAtuais?.filter((id) => !idsNovos?.includes(id));
-      const paraAdicionar = idsNovos?.filter((id) => !idsAtuais?.includes(id));
-      const pastaName = `Processo: ${formatarProcesso(processo?.numeroProcesso)} - ${processo?.clienteName}`;
+      const paraRemover =
+        idsAtuais?.filter((id) => !idsNovos?.includes(id)) || [];
+      const paraAdicionar =
+        idsNovos?.filter((id) => !idsAtuais?.includes(id)) || [];
 
-      await googleUpdateNameFolder.execute(
-        firstProcesso.pastaDriveId,
-        pastaName,
-      );
+      // 4. Atualizamos os dados do processo e suas relações no banco de dados
       const response = await prisma.processos.update({
         where: { id: processo.id },
         data: {
           descricao: processo.descricao,
           numeroProcesso: processo.numeroProcesso,
           usuariosResponsaveis: {
-            // 1. Remove apenas as associações que não estão mais na lista
-            // Usamos deleteMany com um filtro nos IDs dos usuários
+            // Remove apenas as associações que não estão mais na lista
             deleteMany: {
               usuarioId: { in: paraRemover },
             },
-            // 2. Adiciona apenas as novas associações
+            // Adiciona apenas as novas associações
             create: paraAdicionar.map((id) => ({
               usuarioId: id,
             })),
@@ -87,15 +86,12 @@ class EditProcesso {
             connect: { codigoStatus: processo.status },
           },
           tipo: {
-            connect: {
-              codigoTipo: processo.tipo,
-            },
+            connect: { codigoTipo: processo.tipo },
           },
           cliente: {
             connect: { id: cliente.id },
           },
         },
-
         include: {
           usuariosResponsaveis: {
             select: {
@@ -133,10 +129,10 @@ class EditProcesso {
         },
       });
 
-      logger.info(`Processo editado com sucesso!`);
+      logger.info(`Processo ${processo.id} editado com sucesso!`);
       return response;
     } catch (error) {
-      console.error(error);
+      logger.error("Erro no Model de EditProcesso:", error);
       throw error;
     } finally {
       await prisma.$disconnect();

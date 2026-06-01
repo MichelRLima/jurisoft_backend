@@ -3,20 +3,15 @@ import { Router, Request, Response } from "express";
 const createUserController = require("./controllers/user/createUserController");
 const loginUserController = require("./controllers/user/loginUserController");
 import { isAuthenticated } from "./middlewares/isAuthenticated";
-import googleAuthController from "./controllers/googleDrive/googleAuthController";
-import oauth2callbackController from "./controllers/googleDrive/oauth2callbackController";
-import googleCreateFolderController from "./controllers/googleDrive/googleCreateFolderController";
-import googleUploadFileController from "./controllers/googleDrive/googleUploadFileController";
+
 import multer from "multer";
-import googleDeleteFileController from "./controllers/googleDrive/googleDeleteFileController";
+
 import updatePerfilController from "./controllers/user/perfil/updatePerfilController";
 import createProcessoController from "./controllers/processos/createProcessoController";
-import googleListFilesController from "./controllers/googleDrive/googleListFilesController";
 import getAllProcessosController from "./controllers/processos/getAllProcessosController";
 import findAllUserController from "./controllers/user/findAllUserController";
 import deleteProcessoController from "./controllers/processos/deleteProcessoController";
 import getDetailsProcessoController from "./controllers/processos/getDetailsProcessoController";
-import googleThumbnailController from "./controllers/googleDrive/googleThumbnailController";
 import deleteAnexoProcessoController from "./controllers/processos/deleteAnexoProcessoController";
 import editProcessoController from "./controllers/processos/editProcessoController";
 import createAnexoController from "./controllers/processos/createAnexoController";
@@ -27,6 +22,8 @@ import forgotResetPasswordController from "./controllers/user/forgotResetPasswor
 import createClienteController from "./controllers/clientes/createClienteController";
 import getClientesController from "./controllers/clientes/getClientesController";
 import deleteClienteController from "./controllers/clientes/deleteClienteController";
+import getDetailsClienteController from "./controllers/clientes/getDetailsClienteController";
+import getProcessosClienteController from "./controllers/clientes/getProcessosClienteController";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const routes = Router();
@@ -54,38 +51,12 @@ routes.post(
 );
 // --- NOVAS ROTAS DO GOOGLE DRIVE ---
 
-/**
- * 1. Inicia o fluxo de autenticação
- * Acesse: http://localhost:3333/auth/google
- */
-routes.get("/auth/google", isAuthenticated, googleAuthController.handle);
-
-/**
- * 2. Callback para onde o Google redireciona
- */
-routes.get("/oauth2callback", isAuthenticated, oauth2callbackController.handle);
-
-/**
- * 3. Listagem dos arquivos da sua pasta específica
- */
-routes.get("/drive/list", googleListFilesController.handle);
-
-// 4. Rota para CRIAR uma pasta dentro da sua pasta principal
-routes.post("/drive/mkdir", googleCreateFolderController.handle);
-
 // Usamos upload.single('file') para dizer que esperamos UM arquivo chamado 'file'
 /* routes.post(
   "/drive/upload",
   upload.single("file"),
   googleUploadFileController.handle,
 ); */
-
-// Rota DELETE passando o ID como parâmetro de rota
-routes.delete(
-  "/drive/delete/:fileId",
-  isAuthenticated,
-  googleDeleteFileController.handle,
-);
 
 routes.post(
   "/create/processo",
@@ -120,12 +91,6 @@ routes.post(
   getDetailsProcessoController.handle,
 );
 
-routes.get(
-  "/anexo/thumbnail",
-  isAuthenticated,
-  googleThumbnailController.handle,
-);
-
 routes.post(
   "/anexo/delete",
   isAuthenticated,
@@ -138,5 +103,14 @@ routes.get("/find/allUsers", isAuthenticated, findAllUserController.handle);
 routes.post("/create/cliente", isAuthenticated, createClienteController.handle);
 routes.get("/find/clientes", isAuthenticated, getClientesController.handle);
 routes.post("/delete/cliente", isAuthenticated, deleteClienteController.handle);
-
+routes.post(
+  "/find/clienteDetails",
+  isAuthenticated,
+  getDetailsClienteController.handle,
+);
+routes.post(
+  "/find/processos/cliente",
+  isAuthenticated,
+  getProcessosClienteController.handle,
+);
 export default routes;

@@ -83,7 +83,6 @@ model Processos {
   id                   String              @id @default(uuid())
   numeroProcesso       String              @unique
   descricao            String
-  pastaDriveId         String
   usuarioCriacaoId     String
   statusId             String
   tipoId               String
@@ -94,7 +93,7 @@ model Processos {
   usuariosResponsaveis RlUsuarioProcesso[]
   permissaoesDrive     PermissaoDrive[]
   anexosProcesso       AnexosProcesso[]
-  cliente              Clientes            @relation(fields: [clienteId], references: [id])
+  cliente              Clientes            @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   createdAt            DateTime            @default(now())
   updatedAt            DateTime?           @updatedAt
 
@@ -158,13 +157,11 @@ model PermissaoDrive {
 }
 
 model AnexosProcesso {
-  id           String @id @default(uuid())
-  nome         String
-  link         String
-  anexoDriveId String
-  processoId   String
-
-  processo Processos @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  id             String    @id @default(uuid())
+  nome           String
+  processoId     String
+  caminhoArquivo String    @db.VarChar(1024)
+  processo       Processos @relation(fields: [processoId], references: [id], onDelete: Cascade)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt

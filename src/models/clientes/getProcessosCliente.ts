@@ -1,11 +1,21 @@
 import { PrismaClient } from "@prisma/client";
-import { getSecureUrl } from "../../services/storageService";
 
+import logger from "../../utils/logger/logger";
+
+// Mantenha a instância do cliente fora da classe para ser reutilizada (Singleton)
 const prisma = new PrismaClient();
-class GetAllPrcessos {
-  async execute() {
+
+class GetProcessosCliente {
+  async execute(clienteId: string) {
     try {
+      if (!clienteId) {
+        throw new Error("Necessário informar um cliente");
+      }
+
       const allProcessos = await prisma.processos.findMany({
+        where: {
+          clienteId: clienteId,
+        },
         select: {
           id: true,
           numeroProcesso: true,
@@ -77,25 +87,6 @@ class GetAllPrcessos {
         },
       });
 
-      const formatarUsuarioComFoto = async (usuario: any) => {
-        const perfil = usuario?.perfil?.[0];
-        let fotoUrl = "";
-
-        if (perfil?.foto) {
-          fotoUrl = await getSecureUrl(perfil.foto);
-        }
-
-        return {
-          id: usuario.id,
-          email: usuario.email,
-          login: usuario.login,
-          perfil: {
-            ...perfil,
-            foto: fotoUrl, // Agora contém a URL assinada
-          },
-        };
-      };
-
       const format = allProcessos.map((processo) => {
         return {
           ...processo,
@@ -111,13 +102,16 @@ class GetAllPrcessos {
         };
       });
 
+      logger.info(`Clientes buscados com sucesso!`);
       return format;
     } catch (error) {
       console.error(error);
+
       throw error;
     } finally {
+      await prisma.$disconnect();
     }
   }
 }
 
-export default new GetAllPrcessos();
+export default new GetProcessosCliente();

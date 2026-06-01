@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
-import { log } from "console";
+import logger from "../../utils/logger/logger"; // Trocado o console.log pelo seu logger padrão
+import { getSecureUrl } from "../../services/storageService"; // Importando o gerador de links do R2
 
-// Mantenha a instância do cliente fora da classe para ser reutilizada (Singleton)
 const prisma = new PrismaClient();
 
 class GetDetailsProcesso {
@@ -10,6 +10,7 @@ class GetDetailsProcesso {
       if (!processoId) {
         throw new Error("Id do processo ausente.");
       }
+
       const detailsProcesso = await prisma.processos.findUnique({
         where: {
           id: processoId,
@@ -71,7 +72,7 @@ class GetDetailsProcesso {
             select: {
               id: true,
               nome: true,
-              link: true,
+              caminhoArquivo: true, // Substituímos o 'link' pelo 'caminhoArquivo' do R2
             },
           },
           cliente: {
@@ -93,9 +94,39 @@ class GetDetailsProcesso {
         },
       });
 
-      return detailsProcesso;
+      if (!detailsProcesso) {
+        throw new Error("Processo não encontrado.");
+      }
+
+      // =========================================================================
+      // GERAÇÃO DE LINKS SEGUROS PARA OS ANEXOS
+      // =========================================================================
+
+      // Mapeia os anexos para gerar as URLs temporárias de forma simultânea
+      const anexosComLinksTemporarios = await Promise.all(
+        detailsProcesso.anexosProcesso.map(async (anexo) => {
+          let urlSegura = "";
+
+          if (anexo.caminhoArquivo) {
+            // Gera o link válido por 1 hora usando a função que criamos no storageService
+            urlSegura = await getSecureUrl(anexo.caminhoArquivo);
+          }
+
+          return {
+            id: anexo.id,
+            nome: anexo.nome,
+            url: urlSegura, // O front-end vai usar essa propriedade 'url' para o href do botão de download
+          };
+        }),
+      );
+
+      // Retorna o objeto do processo original, mas com a lista de anexos atualizada com as URLs prontas
+      return {
+        ...detailsProcesso,
+        anexosProcesso: anexosComLinksTemporarios,
+      };
     } catch (error) {
-      console.error(error);
+      logger.error("Erro ao buscar detalhes do processo:", error);
       throw error;
     } finally {
       await prisma.$disconnect();

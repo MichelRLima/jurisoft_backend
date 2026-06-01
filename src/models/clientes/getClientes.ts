@@ -8,9 +8,27 @@ const prisma = new PrismaClient();
 class GetClientes {
   async execute() {
     try {
-      const response = await prisma.clientes.findMany();
+      const response = await prisma.clientes.findMany({
+        select: {
+          id: true,
+          nome: true,
+          documento: true,
+          _count: {
+            select: {
+              processos: true,
+            },
+          },
+        },
+      });
+
+      const format = response?.map((item) => {
+        return {
+          ...item,
+          processos: item?._count?.processos || 0,
+        };
+      });
       logger.info(`Clientes buscados com sucesso!`);
-      return response;
+      return format;
     } catch (error) {
       console.error(error);
 
