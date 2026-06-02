@@ -1,9 +1,9 @@
 import { PrismaClient } from "@prisma/client";
-
 import logger from "../../utils/logger/logger";
 
 // Mantenha a instância do cliente fora da classe para ser reutilizada (Singleton)
 const prisma = new PrismaClient();
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
 
 class GetProcessosCliente {
   async execute(clienteId: string) {
@@ -87,26 +87,59 @@ class GetProcessosCliente {
         },
       });
 
+      // Mapeamento síncrono montando as URLs públicas das fotos
       const format = allProcessos.map((processo) => {
+        // 1. Formata a foto do Usuário de Criação
+        const uCriacao = processo.usuarioCriacao;
+        const uPerfil = uCriacao?.perfil?.[0];
+        const uFotoUrl = uPerfil?.foto
+          ? `${R2_PUBLIC_URL}/${uPerfil.foto}`
+          : "";
+
+        const usuarioCriacaoFormatado = uCriacao
+          ? {
+              ...uCriacao,
+              perfil: uPerfil
+                ? {
+                    ...uPerfil,
+                    foto: uFotoUrl, // Link estático completo
+                  }
+                : null,
+            }
+          : null;
+
+        // 2. Formata as fotos dos Usuários Responsáveis
+        const usuariosResponsaveisFormatados =
+          processo?.usuariosResponsaveis?.map((responsavel) => {
+            const rUsuario = responsavel?.usuario;
+            const rPerfil = rUsuario?.perfil?.[0];
+            const rFotoUrl = rPerfil?.foto
+              ? `${R2_PUBLIC_URL}/${rPerfil.foto}`
+              : "";
+
+            return {
+              ...rUsuario,
+              perfil: rPerfil
+                ? {
+                    ...rPerfil,
+                    foto: rFotoUrl, // Link estático completo
+                  }
+                : null,
+            };
+          }) || [];
+
         return {
           ...processo,
           anexos: processo?._count?.anexosProcesso || 0,
-          usuariosResponsaveis: processo?.usuariosResponsaveis?.map(
-            (responsavel) => {
-              return {
-                ...responsavel?.usuario,
-                perfil: responsavel?.usuario?.perfil?.[0],
-              };
-            },
-          ),
+          usuarioCriacao: usuarioCriacaoFormatado,
+          usuariosResponsaveis: usuariosResponsaveisFormatados,
         };
       });
 
-      logger.info(`Clientes buscados com sucesso!`);
+      logger.info(`Processos do cliente buscados com sucesso!`);
       return format;
     } catch (error) {
       console.error(error);
-
       throw error;
     } finally {
       await prisma.$disconnect();

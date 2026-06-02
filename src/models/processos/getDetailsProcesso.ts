@@ -1,8 +1,9 @@
 import { PrismaClient } from "@prisma/client";
-import logger from "../../utils/logger/logger"; // Trocado o console.log pelo seu logger padrão
-import { getSecureUrl } from "../../services/storageService"; // Importando o gerador de links do R2
+import logger from "../../utils/logger/logger";
+import { getSecureUrl } from "../../services/storageService";
 
 const prisma = new PrismaClient();
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
 
 class GetDetailsProcesso {
   async execute(processoId: string) {
@@ -72,7 +73,7 @@ class GetDetailsProcesso {
             select: {
               id: true,
               nome: true,
-              caminhoArquivo: true, // Substituímos o 'link' pelo 'caminhoArquivo' do R2
+              caminhoArquivo: true,
             },
           },
           cliente: {
@@ -99,30 +100,73 @@ class GetDetailsProcesso {
       }
 
       // =========================================================================
-      // GERAÇÃO DE LINKS SEGUROS PARA OS ANEXOS
+      // 1. FOTOS DE PERFIL (Bucket Público - Síncrono e Rápido)
       // =========================================================================
 
-      // Mapeia os anexos para gerar as URLs temporárias de forma simultânea
+      // Formata o Usuário de Criação
+      const uCriacao = detailsProcesso.usuarioCriacao;
+      const uPerfil = uCriacao?.perfil?.[0];
+      const uFotoUrl = uPerfil?.foto ? `${R2_PUBLIC_URL}/${uPerfil.foto}` : "";
+
+      const usuarioCriacaoFormatado = uCriacao
+        ? {
+            ...uCriacao,
+            perfil: uPerfil
+              ? {
+                  ...uPerfil,
+                  foto: uFotoUrl, // Link estático e permanente
+                }
+              : null,
+          }
+        : null;
+
+      // Formata os Usuários Responsáveis
+      const usuariosResponsaveisFormatados =
+        detailsProcesso.usuariosResponsaveis.map((responsavel) => {
+          const rUsuario = responsavel.usuario;
+          const rPerfil = rUsuario?.perfil?.[0];
+          const rFotoUrl = rPerfil?.foto
+            ? `${R2_PUBLIC_URL}/${rPerfil.foto}`
+            : "";
+
+          return {
+            usuario: {
+              ...rUsuario,
+              perfil: rPerfil
+                ? {
+                    ...rPerfil,
+                    foto: rFotoUrl, // Link estático e permanente
+                  }
+                : null,
+            },
+          };
+        });
+
+      // =========================================================================
+      // 2. GERAÇÃO DE LINKS SEGUROS PARA OS ANEXOS (Bucket Privado - Assíncrono)
+      // =========================================================================
+
       const anexosComLinksTemporarios = await Promise.all(
         detailsProcesso.anexosProcesso.map(async (anexo) => {
           let urlSegura = "";
 
           if (anexo.caminhoArquivo) {
-            // Gera o link válido por 1 hora usando a função que criamos no storageService
             urlSegura = await getSecureUrl(anexo.caminhoArquivo);
           }
 
           return {
             id: anexo.id,
             nome: anexo.nome,
-            url: urlSegura, // O front-end vai usar essa propriedade 'url' para o href do botão de download
+            url: urlSegura,
           };
         }),
       );
 
-      // Retorna o objeto do processo original, mas com a lista de anexos atualizada com as URLs prontas
+      // Retorna o objeto combinando os links públicos instantâneos com as URLs seguras geradas
       return {
         ...detailsProcesso,
+        usuarioCriacao: usuarioCriacaoFormatado,
+        usuariosResponsaveis: usuariosResponsaveisFormatados,
         anexosProcesso: anexosComLinksTemporarios,
       };
     } catch (error) {

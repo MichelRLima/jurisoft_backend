@@ -1,7 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import { getSecureUrl } from "../../services/storageService";
 
 const prisma = new PrismaClient();
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
+
 class GetAllPrcessos {
   async execute() {
     try {
@@ -77,37 +78,52 @@ class GetAllPrcessos {
         },
       });
 
-      const formatarUsuarioComFoto = async (usuario: any) => {
-        const perfil = usuario?.perfil?.[0];
-        let fotoUrl = "";
-
-        if (perfil?.foto) {
-          fotoUrl = await getSecureUrl(perfil.foto);
-        }
-
-        return {
-          id: usuario.id,
-          email: usuario.email,
-          login: usuario.login,
-          perfil: {
-            ...perfil,
-            foto: fotoUrl, // Agora contém a URL assinada
-          },
-        };
-      };
-
+      // Mapeamento síncrono e ultra-rápido dos dados
       const format = allProcessos.map((processo) => {
+        // 1. Formata o Usuário de Criação (Gera link completo da foto se existir)
+        const uCriacao = processo.usuarioCriacao;
+        const uPerfil = uCriacao?.perfil?.[0];
+        const uFotoUrl = uPerfil?.foto
+          ? `${R2_PUBLIC_URL}/${uPerfil.foto}`
+          : "";
+
+        const usuarioCriacaoFormatado = uCriacao
+          ? {
+              ...uCriacao,
+              perfil: uPerfil
+                ? {
+                    ...uPerfil,
+                    foto: uFotoUrl, // Substitui pelo link estático completo
+                  }
+                : null,
+            }
+          : null;
+
+        // 2. Formata a lista de Usuários Responsáveis (Gera link completo para cada um)
+        const usuariosResponsaveisFormatados =
+          processo?.usuariosResponsaveis?.map((responsavel) => {
+            const rUsuario = responsavel?.usuario;
+            const rPerfil = rUsuario?.perfil?.[0];
+            const rFotoUrl = rPerfil?.foto
+              ? `${R2_PUBLIC_URL}/${rPerfil.foto}`
+              : "";
+
+            return {
+              ...rUsuario,
+              perfil: rPerfil
+                ? {
+                    ...rPerfil,
+                    foto: rFotoUrl, // Substitui pelo link estático completo
+                  }
+                : null,
+            };
+          }) || [];
+
         return {
           ...processo,
           anexos: processo?._count?.anexosProcesso || 0,
-          usuariosResponsaveis: processo?.usuariosResponsaveis?.map(
-            (responsavel) => {
-              return {
-                ...responsavel?.usuario,
-                perfil: responsavel?.usuario?.perfil?.[0],
-              };
-            },
-          ),
+          usuarioCriacao: usuarioCriacaoFormatado,
+          usuariosResponsaveis: usuariosResponsaveisFormatados,
         };
       });
 
@@ -116,6 +132,7 @@ class GetAllPrcessos {
       console.error(error);
       throw error;
     } finally {
+      await prisma.$disconnect();
     }
   }
 }

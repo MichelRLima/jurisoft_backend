@@ -1,7 +1,9 @@
 import { PrismaClient } from "@prisma/client";
+import uploadFotoPerfil from "../../superBase/uploadFotoPerfil";
+import deleteFotoPerfil from "../../superBase/deleteFotoPerfil";
 
-// Mantenha a instância do cliente fora da classe para ser reutilizada (Singleton)
 const client = new PrismaClient();
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
 
 class UpdatePerfil {
   async execute(
@@ -13,32 +15,55 @@ class UpdatePerfil {
     usuarioId: string,
   ) {
     try {
-      // Usando transação apenas se você for reativar os logs depois.
-      // Se for apenas o upsert, o transactionClient não é estritamente necessário.
+      // 1. Busca perfil atual para verificar se há foto antiga
+      const perfilAtual = await client.perfil.findUnique({
+        where: { usuarioId },
+      });
+
+      let caminhoParaSalvar = perfilAtual?.foto || "";
+      const isBase64 = foto.startsWith("data:");
+
+      // 2. Se for Base64, processa o upload
+      if (isBase64) {
+        if (perfilAtual?.foto) {
+          await deleteFotoPerfil.execute(perfilAtual.foto);
+        }
+        caminhoParaSalvar = await uploadFotoPerfil.execute(foto);
+      } else {
+        caminhoParaSalvar = foto;
+      }
+
+      // 3. Executa a transação
       const result = await client.$transaction(async (transactionClient) => {
-        const updateUser = await transactionClient.usuario.update({
-          where: {
-            id: usuarioId,
-          },
-          data: {
-            email,
-          },
+        await transactionClient.usuario.update({
+          where: { id: usuarioId },
+          data: { email },
         });
-        // Se o usuarioId for @unique no schema.prisma, você pode fazer o upsert direto nele
+
         const updatePerfil = await transactionClient.perfil.upsert({
-          where: {
-            // Se usuarioId for único, use: usuarioId: usuarioId
-            // Se não for, precisamos buscar o ID primeiro como você fez
-            usuarioId: usuarioId,
+          where: { usuarioId },
+          create: {
+            foto: caminhoParaSalvar,
+            nome,
+            sobrenome,
+            telefone,
+            usuarioId,
           },
-          create: { foto, nome, sobrenome, telefone, usuarioId },
-          update: { foto, nome, sobrenome, telefone },
+          update: { foto: caminhoParaSalvar, nome, sobrenome, telefone },
         });
 
         return { updatePerfil };
       });
 
-      return result;
+      // 4. Monta o link completo para o retorno
+      const fotoCompleta = caminhoParaSalvar
+        ? `${R2_PUBLIC_URL}/${caminhoParaSalvar}`
+        : "";
+
+      return {
+        ...result.updatePerfil,
+        foto: fotoCompleta,
+      };
     } catch (error: any) {
       if (!error.path) {
         error.path = "src/models/internal/perfil/updatePerfil.ts";
@@ -47,7 +72,6 @@ class UpdatePerfil {
     } finally {
       await client.$disconnect();
     }
-    // Removido o $disconnect daqui
   }
 }
 

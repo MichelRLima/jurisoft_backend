@@ -67,7 +67,6 @@ CREATE TABLE `processos` (
     `id` VARCHAR(191) NOT NULL,
     `numeroProcesso` VARCHAR(191) NOT NULL,
     `descricao` VARCHAR(191) NOT NULL,
-    `pastaDriveId` VARCHAR(191) NOT NULL,
     `usuarioCriacaoId` VARCHAR(191) NOT NULL,
     `statusId` VARCHAR(191) NOT NULL,
     `tipoId` VARCHAR(191) NOT NULL,
@@ -117,26 +116,11 @@ CREATE TABLE `tipoProcesso` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `permissaoDrive` (
-    `id` VARCHAR(191) NOT NULL,
-    `processoId` VARCHAR(191) NOT NULL,
-    `pastaDriveId` VARCHAR(191) NOT NULL,
-    `permissaoId` VARCHAR(191) NOT NULL,
-    `usuarioId` VARCHAR(191) NOT NULL,
-    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updatedAt` DATETIME(3) NULL,
-
-    UNIQUE INDEX `permissaoDrive_usuarioId_pastaDriveId_key`(`usuarioId`, `pastaDriveId`),
-    PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- CreateTable
 CREATE TABLE `anexosProcesso` (
     `id` VARCHAR(191) NOT NULL,
     `nome` VARCHAR(191) NOT NULL,
-    `link` VARCHAR(191) NOT NULL,
-    `anexoDriveId` VARCHAR(191) NOT NULL,
     `processoId` VARCHAR(191) NOT NULL,
+    `caminhoArquivo` VARCHAR(1024) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NULL,
 
@@ -159,19 +143,13 @@ ALTER TABLE `processos` ADD CONSTRAINT `processos_tipoId_fkey` FOREIGN KEY (`tip
 ALTER TABLE `processos` ADD CONSTRAINT `processos_usuarioCriacaoId_fkey` FOREIGN KEY (`usuarioCriacaoId`) REFERENCES `usuario`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `processos` ADD CONSTRAINT `processos_clienteId_fkey` FOREIGN KEY (`clienteId`) REFERENCES `clientes`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `processos` ADD CONSTRAINT `processos_clienteId_fkey` FOREIGN KEY (`clienteId`) REFERENCES `clientes`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `rlUsuarioProcesso` ADD CONSTRAINT `rlUsuarioProcesso_processoId_fkey` FOREIGN KEY (`processoId`) REFERENCES `processos`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `rlUsuarioProcesso` ADD CONSTRAINT `rlUsuarioProcesso_usuarioId_fkey` FOREIGN KEY (`usuarioId`) REFERENCES `usuario`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `permissaoDrive` ADD CONSTRAINT `permissaoDrive_usuarioId_fkey` FOREIGN KEY (`usuarioId`) REFERENCES `usuario`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `permissaoDrive` ADD CONSTRAINT `permissaoDrive_processoId_fkey` FOREIGN KEY (`processoId`) REFERENCES `processos`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `anexosProcesso` ADD CONSTRAINT `anexosProcesso_processoId_fkey` FOREIGN KEY (`processoId`) REFERENCES `processos`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

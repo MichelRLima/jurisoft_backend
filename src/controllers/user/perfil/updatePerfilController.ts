@@ -1,40 +1,47 @@
 import { Request, Response } from "express";
-import updatePerfil from "../../../models/user/perfil/updatePerfil";
+import updatePerfil from "../../../models/user/perfil/updatePerfil"; // Ajuste o nome conforme seu arquivo
 import updateSenha from "../../../models/user/perfil/updateSenha";
-import uploadFotoPerfil from "../../../models/superBase/uploadFotoPerfil";
 
-class UpdatePerfilCOntroller {
-  async handle(req: Request, res: Response) {
+class UpdatePerfilController {
+  // Adicionamos o Promise<void> aqui para deixar o TypeScript feliz
+  async handle(req: Request, res: Response): Promise<void> {
     try {
       const { foto, nome, sobrenome, email, telefone, novaSenha } = req.body;
-
       const usuarioId = req.headers["x-user-id"] as string;
-      let linkFoto = "";
-      if (foto) {
-        linkFoto = await uploadFotoPerfil.execute(foto);
-      }
 
       const response = await updatePerfil.execute(
-        linkFoto,
+        foto,
         nome,
         sobrenome,
         email,
         telefone,
         usuarioId,
       );
+
       if (novaSenha) {
         await updateSenha.execute(usuarioId, novaSenha);
       }
 
-      res.status(200).json(response.updatePerfil);
+      // Removemos o 'return' daqui, apenas executamos o método
+      res.status(200).json(response);
     } catch (error: any) {
       if (!error.path) {
         error.path =
           "src/controllers/internal/perfil/updatePerfilClienteController.js";
       }
-      throw error;
+
+      if (error.status) {
+        // Removemos o 'return' daqui também
+        res.status(error.status).json({ message: error.message });
+      } else {
+        console.error(error);
+        // E daqui
+        res
+          .status(500)
+          .json({ message: error.message || "Erro interno no servidor" });
+      }
     }
   }
 }
 
-export default new UpdatePerfilCOntroller();
+export default new UpdatePerfilController();

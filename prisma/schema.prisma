@@ -29,7 +29,6 @@ model Usuario {
   perfil            Perfil[]
   processos         Processos[]
   rlUsuarioProcesso RlUsuarioProcesso[]
-  permissaoDrive    PermissaoDrive[]
 
   @@map("usuario")
 }
@@ -91,7 +90,6 @@ model Processos {
   tipo                 TipoProcesso        @relation(fields: [tipoId], references: [id])
   usuarioCriacao       Usuario             @relation(fields: [usuarioCriacaoId], references: [id])
   usuariosResponsaveis RlUsuarioProcesso[]
-  permissaoesDrive     PermissaoDrive[]
   anexosProcesso       AnexosProcesso[]
   cliente              Clientes            @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   createdAt            DateTime            @default(now())
@@ -138,22 +136,6 @@ model TipoProcesso {
   updatedAt DateTime?   @updatedAt
 
   @@map("tipoProcesso")
-}
-
-model PermissaoDrive {
-  id           String @id @default(uuid())
-  processoId   String
-  pastaDriveId String
-  permissaoId  String
-  usuarioId    String
-
-  usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  processo  Processos @relation(fields: [processoId], references: [id], onDelete: Cascade)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime? @updatedAt
-
-  @@unique([usuarioId, pastaDriveId])
-  @@map("permissaoDrive")
 }
 
 model AnexosProcesso {

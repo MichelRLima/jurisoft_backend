@@ -1,30 +1,26 @@
-import { supabase } from "../../services/supabaseService/supabaseConfig";
 import logger from "../../utils/logger/logger";
+import { deleteFile } from "../../services/storageService"; // Ajuste o caminho do seu serviço
 
 class DeleteFotoPerfil {
-  async execute(urlPublica: string) {
+  async execute(caminhoArquivo: string) {
     try {
-      const partes = urlPublica.split("fotos_perfil/");
-      const fileName = partes[partes.length - 1];
       logger.debug(`Removendo foto de perfil...`);
-      if (!fileName) return;
-      console.log(fileName);
+      if (!caminhoArquivo) return;
 
-      // 2. Chamar o comando de remoção
-      const { data, error } = await supabase.storage
-        .from("fotos_perfil")
-        .remove([fileName]); // O remove espera um array de strings
+      // Segurança: Limpa a string para garantir que temos apenas a "Key" (o caminho no bucket)
+      const urlBase = process.env.R2_PUBLIC_URL || "";
+      const key = caminhoArquivo.replace(`${urlBase}/`, "");
 
-      if (error) {
-        console.error("Erro ao deletar arquivo no Supabase:", error);
-        throw error;
-      }
-      logger.info(`Foto de perfil removida com sucesso!`);
-      return data;
+      console.log(`Deletando chave: ${key}`);
+
+      // Chama a função do R2 passando 'true' para indicar que é do bucket público
+      await deleteFile(key, true);
+
+      logger.info(`Foto de perfil removida com sucesso do R2!`);
+      return true;
     } catch (error) {
-      console.error(error);
+      console.error("Erro ao deletar arquivo no R2:", error);
       throw error;
-    } finally {
     }
   }
 }
