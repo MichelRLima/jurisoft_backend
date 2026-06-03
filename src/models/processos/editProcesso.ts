@@ -21,6 +21,7 @@ interface Processo {
 }
 
 const prisma = new PrismaClient();
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL; // 1. Adicionada a referência do bucket
 
 class EditProcesso {
   async execute(processo: Processo) {
@@ -129,8 +130,46 @@ class EditProcesso {
         },
       });
 
+      // =========================================================================
+      // 5. Interceptação para formatar os links completos de foto
+      // =========================================================================
+
+      const responsaveisFormatados = response.usuariosResponsaveis.map(
+        (responsavel: any) => {
+          // Tratamento de array caso o Prisma retorne o perfil encapsulado no índice [0]
+          const pRespRaw = responsavel.usuario?.perfil;
+          const perfilResp = Array.isArray(pRespRaw) ? pRespRaw[0] : pRespRaw;
+
+          // Concatena a URL pública
+          const fotoRespUrl = perfilResp?.foto
+            ? `${R2_PUBLIC_URL}/${perfilResp.foto}`
+            : "";
+
+          return {
+            ...responsavel,
+            usuario: {
+              ...responsavel.usuario,
+              perfil: perfilResp
+                ? {
+                    ...perfilResp,
+                    foto: fotoRespUrl, // URL estática final
+                  }
+                : null,
+            },
+          };
+        },
+      );
+
+      // Monta o objeto final preservando a estrutura original do response
+      const processoFormatado = {
+        ...response,
+        usuariosResponsaveis: responsaveisFormatados,
+      };
+
       logger.info(`Processo ${processo.id} editado com sucesso!`);
-      return response;
+
+      // 6. Retorna o objeto formatado em vez da resposta pura do banco
+      return processoFormatado;
     } catch (error) {
       logger.error("Erro no Model de EditProcesso:", error);
       throw error;

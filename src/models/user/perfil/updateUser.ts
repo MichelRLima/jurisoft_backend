@@ -94,7 +94,7 @@ class UpdateUser {
                 id: firstUser?.perfil[0]?.id,
               },
               data: {
-                foto: caminhoFoto, // Caminho relativo limpo (ex: escritorios/123/perfis/perfil_xxxx.jpg)
+                foto: caminhoFoto,
                 nome,
                 sobrenome,
                 telefone,

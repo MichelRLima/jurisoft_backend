@@ -123,10 +123,63 @@ const inicializeUsers = async () => {
       return;
     } else {
       console.log("🚀 Criando usuário admin");
-      await createUser.execute(user?.login, user?.password, user?.email, "1");
+      const devPermission = await prisma.permissoes.findFirst({
+        where: {
+          codigoPermissao: "DEV",
+        },
+      });
+      await createUser.execute(
+        user?.login,
+        user?.password,
+        user?.email,
+        devPermission?.id || "",
+      );
     }
   } catch (error) {
     console.error("❌ Erro ao inicializar cadastros de usuários:", error);
+    throw error; // Lança o erro para o initializeApp tratar (parar o servidor)
+  }
+};
+
+const inicializePermissoes = async () => {
+  try {
+    const arrayPermissoes = [
+      {
+        nomePermissao: "DESENVOLVEDOR",
+        codigoPermissao: "DEV",
+        descricaoPermissao: "Desenvolvedor",
+        ativo: true,
+        tipo: 2,
+      },
+      {
+        nomePermissao: "ADVOGADO(A)",
+        codigoPermissao: "ADV",
+        descricaoPermissao: "Advogado",
+        ativo: true,
+        tipo: 1,
+      },
+      {
+        nomePermissao: "AUXILIAR",
+        codigoPermissao: "AUX",
+        descricaoPermissao: "Auxiliar",
+        ativo: true,
+        tipo: 1,
+      },
+    ];
+
+    const countPermissoes = await prisma.permissoes.count();
+
+    if (countPermissoes >= 1) {
+      console.log("🚀 Permissões de sistema já criado");
+      return;
+    } else {
+      console.log("🚀 Criando permissões de sistema");
+      await prisma.permissoes.createMany({
+        data: arrayPermissoes,
+      });
+    }
+  } catch (error) {
+    console.error("❌ Erro ao inicializar cadastro de permissões:", error);
     throw error; // Lança o erro para o initializeApp tratar (parar o servidor)
   }
 };
@@ -135,6 +188,7 @@ export const initializeApp = async () => {
   console.log("🚀 Executando scripts de inicialização...");
 
   try {
+    await inicializePermissoes();
     await initializeStatusProcesso();
     await inicializeUsers();
 

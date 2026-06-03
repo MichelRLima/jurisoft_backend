@@ -14,23 +14,40 @@ datasource db {
 }
 
 model Usuario {
-  id                    String    @id @default(uuid())
-  login                 String?   @unique
+  id                    String              @id @default(uuid())
+  login                 String?             @unique
   senha                 String?
-  email                 String?   @unique
-  status                Int       @default(1)
+  email                 String?             @unique
+  status                Int                 @default(1)
   passwordResetCode     String?
   passwordResetExpires  DateTime?
-  passwordResetAttempts Int       @default(0)
+  passwordResetAttempts Int                 @default(0)
+  permissaoId           String
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  RefreshToken          RefreshToken[]
+  perfil                Perfil[]
+  processos             Processos[]
+  rlUsuarioProcesso     RlUsuarioProcesso[]
 
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  RefreshToken      RefreshToken[]
-  perfil            Perfil[]
-  processos         Processos[]
-  rlUsuarioProcesso RlUsuarioProcesso[]
+  permissao Permissoes @relation(fields: [permissaoId], references: [id])
 
   @@map("usuario")
+}
+
+model Permissoes {
+  id                 String   @id @default(uuid())
+  codigoPermissao    String   @unique
+  nomePermissao      String
+  descricaoPermissao String
+  ativo              Boolean  @default(true)
+  tipo               Int      @default(1) // 1-Sistema, 2-Desenvolvimento
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  usuarios Usuario[]
+
+  @@map("permissoes")
 }
 
 model Perfil {

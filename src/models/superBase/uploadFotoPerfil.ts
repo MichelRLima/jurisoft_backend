@@ -27,8 +27,6 @@ class UploadFotoPerfil {
 
       logger.info(`Foto de perfil salva com sucesso no R2!`);
 
-      // Retornamos APENAS o caminho relativo (ex: escritorios/123/perfis/perfil_987.jpg)
-      // A montagem do link público com o https://pub-...r2.dev é feita no UpdateUser
       return caminhoNoStorage;
     } catch (error) {
       console.error(error);

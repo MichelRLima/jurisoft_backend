@@ -24,6 +24,10 @@ import getClientesController from "./controllers/clientes/getClientesController"
 import deleteClienteController from "./controllers/clientes/deleteClienteController";
 import getDetailsClienteController from "./controllers/clientes/getDetailsClienteController";
 import getProcessosClienteController from "./controllers/clientes/getProcessosClienteController";
+import editClienteController from "./controllers/clientes/editClienteController";
+import findPermissaoController from "./controllers/user/findPermissaoController";
+import deleteUserController from "./controllers/user/deleteUserController";
+import findAllUserProcessoController from "./controllers/processos/findAllUserProcessoController";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const routes = Router();
@@ -39,7 +43,8 @@ routes.post("/auth/forgotPassword", ForgotPasswordController.handle);
 // Rota onde o usuário envia o email, o código recebido e a senha nova
 routes.post("/auth/forgotResetPassword", forgotResetPasswordController.handle);
 
-routes.post("/createUser", createUserController.handle);
+routes.post("/createUser", isAuthenticated, createUserController.handle);
+routes.post("/delete/user", isAuthenticated, deleteUserController.handle);
 routes.post("/login", loginUserController.handle);
 
 routes.put("/update/perfil", isAuthenticated, updatePerfilController.handle);
@@ -98,9 +103,17 @@ routes.post(
 );
 
 routes.get("/find/allUsers", isAuthenticated, findAllUserController.handle);
+routes.get(
+  "/find/processo/allUsers",
+  isAuthenticated,
+  findAllUserProcessoController.handle,
+);
+
+routes.get("/find/permissoes", isAuthenticated, findPermissaoController.handle);
 
 /* CLIENTE */
 routes.post("/create/cliente", isAuthenticated, createClienteController.handle);
+routes.post("/edit/cliente", isAuthenticated, editClienteController.handle);
 routes.get("/find/clientes", isAuthenticated, getClientesController.handle);
 routes.post("/delete/cliente", isAuthenticated, deleteClienteController.handle);
 routes.post(

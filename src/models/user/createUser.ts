@@ -40,6 +40,7 @@ export const createUser = {
             senha: passwordHash,
             email,
             status: 1,
+            permissaoId,
           },
         });
 

@@ -12,16 +12,17 @@ class CheckUsuario {
           login: true,
           email: true,
           status: true,
-          /*       rlPermissoesUsuario: {
+
+          permissao: {
             select: {
-              permissao: {
-                select: {
-                  id: true,
-                  codigoPermissao: true,
-                },
-              },
+              id: true,
+              codigoPermissao: true,
+              nomePermissao: true,
+              descricaoPermissao: true,
+              ativo: true,
+              tipo: true,
             },
-          }, */
+          },
         },
       });
       if (usuarioExists) {

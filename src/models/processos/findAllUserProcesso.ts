@@ -3,9 +3,12 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL; // 1. Adicionada a referência do bucket
 
-class FindAllUser {
-  async execute() {
+class FindAllUserProcesso {
+  async execute(usuarioId: string) {
     try {
+      if (!usuarioId) {
+        throw new Error("Usuário não identificado.");
+      }
       const users = await prisma.usuario.findMany({
         include: {
           perfil: true,
@@ -47,4 +50,4 @@ class FindAllUser {
   }
 }
 
-export default new FindAllUser();
+export default new FindAllUserProcesso();

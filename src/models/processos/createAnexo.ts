@@ -43,9 +43,9 @@ class CreateAnexo {
           // Sanitiza o nome do arquivo removendo caracteres especiais
           const nomeSeguro = file.originalname.replace(/[^a-zA-Z0-9.-]/g, "_");
           const timestamp = Date.now();
-          const escritorio = process.env.ESCRITORIO_NAME || "JuriSoft";
+
           // Mantém a mesma estrutura de pastas virtuais padronizada do sistema
-          const caminhoNoStorage = `escritorios/${escritorio}/clientes/${processo.clienteId}/processos/${processo.numeroProcesso}/${timestamp}-${nomeSeguro}`;
+          const caminhoNoStorage = `clientes/${processo.clienteId}/processos/${processo.numeroProcesso}/${timestamp}-${nomeSeguro}`;
 
           // Envia o buffer do arquivo diretamente ao R2
           await uploadFile(file.buffer, caminhoNoStorage, file.mimetype);

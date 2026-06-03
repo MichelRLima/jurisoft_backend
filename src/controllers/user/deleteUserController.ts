@@ -1,10 +1,12 @@
 import { Request, Response } from "express";
-import findAllUser from "../../models/user/findAllUser";
 
-class FindAllUserController {
+import deleteUser from "../../models/user/deleteUser";
+
+class DeleteUserController {
   async handle(req: Request, res: Response) {
+    const { userId } = req.body;
     try {
-      const response = await findAllUser.execute();
+      const response = await deleteUser.execute(userId);
       res.status(200).json(response);
     } catch (error) {
       console.error(error);
@@ -13,4 +15,4 @@ class FindAllUserController {
   }
 }
 
-export default new FindAllUserController();
+export default new DeleteUserController();

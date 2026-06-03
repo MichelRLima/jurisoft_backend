@@ -8,11 +8,27 @@ CREATE TABLE `usuario` (
     `passwordResetCode` VARCHAR(191) NULL,
     `passwordResetExpires` DATETIME(3) NULL,
     `passwordResetAttempts` INTEGER NOT NULL DEFAULT 0,
+    `permissaoId` VARCHAR(191) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
     UNIQUE INDEX `usuario_login_key`(`login`),
     UNIQUE INDEX `usuario_email_key`(`email`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `permissoes` (
+    `id` VARCHAR(191) NOT NULL,
+    `codigoPermissao` VARCHAR(191) NOT NULL,
+    `nomePermissao` VARCHAR(191) NOT NULL,
+    `descricaoPermissao` VARCHAR(191) NOT NULL,
+    `ativo` BOOLEAN NOT NULL DEFAULT true,
+    `tipo` INTEGER NOT NULL DEFAULT 1,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `permissoes_codigoPermissao_key`(`codigoPermissao`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -126,6 +142,9 @@ CREATE TABLE `anexosProcesso` (
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- AddForeignKey
+ALTER TABLE `usuario` ADD CONSTRAINT `usuario_permissaoId_fkey` FOREIGN KEY (`permissaoId`) REFERENCES `permissoes`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `perfil` ADD CONSTRAINT `perfil_usuarioId_fkey` FOREIGN KEY (`usuarioId`) REFERENCES `usuario`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

@@ -19,12 +19,7 @@ interface IFindProcessoResult {
     id: string;
     email: string;
     login: string;
-    perfil: {
-      id: string;
-      nome: string;
-      sobrenome: string;
-      foto: string | null;
-    } | null;
+    perfil: any; // Alterado para any temporariamente para aceitar a validação de array nativa do Prisma
   };
   status: {
     id: string;
@@ -41,12 +36,7 @@ interface IFindProcessoResult {
       id: string;
       email: string;
       login: string;
-      perfil: {
-        id: string;
-        nome: string;
-        sobrenome: string;
-        foto: string | null;
-      } | null;
+      perfil: any;
     };
   }[];
   cliente: {
@@ -60,6 +50,7 @@ interface IFindProcessoResult {
 }
 
 const prisma = new PrismaClient();
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
 
 class CreateProcesso {
   async execute({ processo, files = [], usuarioId }: CreateProcessoRequest) {
@@ -94,7 +85,6 @@ class CreateProcesso {
       // FASE 1: COMUNICAÇÃO EXTERNA (CLOUDFLARE R2) - FORA DA TRANSAÇÃO
       // =========================================================================
 
-      // O banco guardará apenas o nome original e o caminho do arquivo no Bucket
       const arquivosParaSalvar: {
         nome: string;
         caminhoArquivo: string;
@@ -102,28 +92,23 @@ class CreateProcesso {
 
       if (files.length > 0) {
         logger.debug(
-          `Identificado ${files.length} arquivos para upload. Iniciando envio para o Cloudflare R2...`,
+          `Identificado ${files?.length} arquivos para upload. Iniciando envio para o Cloudflare R2...`,
         );
 
         await Promise.all(
-          files.map(async (file) => {
+          files?.map(async (file) => {
             logger.debug(`Upload do arquivo ${file.originalname}`);
 
-            // Cria um nome único e seguro para evitar conflitos no R2
             const nomeSeguro = file.originalname.replace(
               /[^a-zA-Z0-9.-]/g,
               "_",
             );
             const timestamp = Date.now();
-            const escritorio = process.env.ESCRITORIO_NAME || "JuriSoft";
-            // Define o caminho virtual (pasta) dentro do Cloudflare R2
-            // Ex: clientes/123/processos/0001-2026/1684324-doc.pdf
-            const caminhoNoStorage = `escritorios/${escritorio}npm clientes/${cliente.id}/processos/${processo.numeroProcesso}/${timestamp}-${nomeSeguro}`;
 
-            // Executa o upload (Certifique-se de que o Multer está configurado com memoryStorage para ter o file.buffer)
+            const caminhoNoStorage = `clientes/${cliente.id}/processos/${processo.numeroProcesso}/${timestamp}-${nomeSeguro}`;
+
             await uploadFile(file.buffer, caminhoNoStorage, file.mimetype);
 
-            // Guarda os dados na memória para salvar no Prisma depois
             arquivosParaSalvar.push({
               nome: file.originalname,
               caminhoArquivo: caminhoNoStorage,
@@ -162,10 +147,10 @@ class CreateProcesso {
         logger.debug(`Processo criado no banco de dados: ${newProcesso.id}`);
 
         // 2. Salva os anexos (se houverem) usando createMany
-        if (arquivosParaSalvar.length > 0) {
+        if (arquivosParaSalvar?.length > 0) {
           logger.debug("Salvando registros dos anexos no banco de dados...");
           await tx.anexosProcesso.createMany({
-            data: arquivosParaSalvar.map((arquivo) => ({
+            data: arquivosParaSalvar?.map((arquivo) => ({
               nome: arquivo.nome,
               caminhoArquivo: arquivo.caminhoArquivo,
               processoId: newProcesso.id,
@@ -226,14 +211,54 @@ class CreateProcesso {
           throw new Error("Processo não encontrado após criação");
         }
 
+        // Tratamento seguro do perfil do criador (Lida se vier como Array ou Objeto)
+        const pCriacaoRaw = findProcesso.usuarioCriacao?.perfil;
+        const perfilCriacao = Array.isArray(pCriacaoRaw)
+          ? pCriacaoRaw[0]
+          : pCriacaoRaw;
+        const fotoCriacaoUrl = perfilCriacao?.foto
+          ? `${R2_PUBLIC_URL}/${perfilCriacao.foto}`
+          : "";
+
         return {
           ...findProcesso,
+          usuarioCriacao: findProcesso.usuarioCriacao
+            ? {
+                ...findProcesso.usuarioCriacao,
+                perfil: perfilCriacao
+                  ? {
+                      id: perfilCriacao.id,
+                      nome: perfilCriacao.nome,
+                      sobrenome: perfilCriacao.sobrenome,
+                      foto: fotoCriacaoUrl, // URL estática perfeita e sem o objeto "0"
+                    }
+                  : null,
+              }
+            : findProcesso.usuarioCriacao,
           anexos: findProcesso._count?.anexosProcesso || 0,
           usuariosResponsaveis: findProcesso.usuariosResponsaveis?.map(
-            (responsavel: any) => ({
-              ...responsavel.usuario,
-              perfil: responsavel.usuario?.perfil,
-            }),
+            (responsavel: any) => {
+              // Tratamento seguro do perfil dos responsáveis
+              const pRespRaw = responsavel.usuario?.perfil;
+              const perfilResp = Array.isArray(pRespRaw)
+                ? pRespRaw[0]
+                : pRespRaw;
+              const fotoRespUrl = perfilResp?.foto
+                ? `${R2_PUBLIC_URL}/${perfilResp.foto}`
+                : "";
+
+              return {
+                ...responsavel.usuario,
+                perfil: perfilResp
+                  ? {
+                      id: perfilResp.id,
+                      nome: perfilResp.nome,
+                      sobrenome: perfilResp.sobrenome,
+                      foto: fotoRespUrl, // URL estática perfeita e sem o objeto "0"
+                    }
+                  : null,
+              };
+            },
           ),
         };
       });
