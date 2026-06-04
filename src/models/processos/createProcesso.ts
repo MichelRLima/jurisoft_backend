@@ -1,7 +1,8 @@
-import { PrismaClient } from "@prisma/client";
+import { AcaoLog, PrismaClient } from "@prisma/client";
 import logger from "../../utils/logger/logger";
 import { uploadFile } from "../../services/storageService"; // Importe o serviço do R2 criado anteriormente
 import formatarProcesso from "../../utils/formatarProcesso/formatarProcesso";
+import { auditEmitter } from "../../services/auditService";
 
 // Definimos o que o Model espera receber
 interface CreateProcessoRequest {
@@ -81,6 +82,18 @@ class CreateProcesso {
         throw new Error("Cliente não encontrado");
       }
 
+      const firstProcesso = await prisma.processos.findFirst({
+        where: {
+          numeroProcesso: processo.numeroProcesso,
+        },
+      });
+
+      if (firstProcesso) {
+        // Aproveitei para tipar o erro para que o Controller possa devolver um 409 Conflict
+        throw Object.assign(new Error("Processo já cadastrado"), {
+          status: 409,
+        });
+      }
       // =========================================================================
       // FASE 1: COMUNICAÇÃO EXTERNA (CLOUDFLARE R2) - FORA DA TRANSAÇÃO
       // =========================================================================
@@ -261,6 +274,20 @@ class CreateProcesso {
             },
           ),
         };
+      });
+      auditEmitter.emit("AUDIT_LOG", {
+        entidade: "PROCESSO",
+        entidadeId: result.id, // O ID do processo que acabou de ser criado
+        acao: AcaoLog.CREATE,
+        atorId: usuarioId, // O usuário que fez a requisição
+        dadosAnteriores: null, // Como é criação, não havia nada antes
+        dadosNovos: {
+          numeroProcesso: result.numeroProcesso,
+          descricao: result.descricao,
+          status: result.status?.nomeStatus,
+          tipo: result.tipo?.nomeTipo,
+          cliente: result.cliente?.nome,
+        },
       });
 
       return result;

@@ -1,14 +1,12 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 
 import updatePassWord from "../../models/user/updatePassWord";
+import { AuthRequest } from "../../middlewares/isAuthenticated";
 
 class UpdateUserController {
-  async handle(req: Request, res: Response) {
+  async handle(req: AuthRequest, res: Response) {
     const { password, newPassword } = req.body;
-    const userIdHeader = req.headers["x-user-id"];
-    const usuarioId = Array.isArray(userIdHeader)
-      ? userIdHeader[0]
-      : userIdHeader;
+    const usuarioId = req.user?.sub;
 
     try {
       console.log(usuarioId);

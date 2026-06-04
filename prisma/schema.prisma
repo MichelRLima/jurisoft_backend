@@ -26,11 +26,11 @@ model Usuario {
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
   RefreshToken          RefreshToken[]
-  perfil                Perfil[]
+  perfil                Perfil?
   processos             Processos[]
   rlUsuarioProcesso     RlUsuarioProcesso[]
-
-  permissao Permissoes @relation(fields: [permissaoId], references: [id])
+  auditLogs             AuditLog[]
+  permissao             Permissoes          @relation(fields: [permissaoId], references: [id])
 
   @@map("usuario")
 }
@@ -98,7 +98,7 @@ model Clientes {
 model Processos {
   id                   String              @id @default(uuid())
   numeroProcesso       String              @unique
-  descricao            String
+  descricao            String              @db.Text
   usuarioCriacaoId     String
   statusId             String
   tipoId               String
@@ -166,4 +166,30 @@ model AnexosProcesso {
   updatedAt DateTime? @updatedAt
 
   @@map("anexosProcesso")
+}
+
+enum AcaoLog {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+model AuditLog {
+  id         String  @id @default(uuid())
+  entidade   String // Ex: "PROCESSO", "USUARIO", "CLIENTE"
+  entidadeId String // O ID do processo ou usuario afetado
+  acao       AcaoLog // CREATE, UPDATE, DELETE
+  atorId     String // Quem fez a ação (ID do usuário logado)
+
+  // Usamos JSON para guardar a "fotografia" dos dados
+  dadosAnteriores Json? // Como era antes (null se for CREATE)
+  dadosNovos      Json? // Como ficou (null se for DELETE)
+
+  createdAt DateTime @default(now())
+
+  // Relacionamento opcional para puxar o nome de quem fez a ação no frontend
+  ator Usuario @relation(fields: [atorId], references: [id])
+
+  @@index([entidade, entidadeId]) // Índice para buscas ultra rápidas no banco
+  @@map("audit_logs")
 }

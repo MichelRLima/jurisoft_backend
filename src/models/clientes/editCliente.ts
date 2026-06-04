@@ -1,10 +1,13 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, AcaoLog } from "@prisma/client"; // Adicionado AcaoLog
 import { Cliente } from "../../types/cliente";
 import logger from "../../utils/logger/logger";
+import { auditEmitter } from "../../services/auditService";
 
 const prisma = new PrismaClient();
+
 class EditCliente {
-  async execute(dataCliente: Cliente, clienteId: string) {
+  // 👇 Adicionado o usuarioId como terceiro parâmetro
+  async execute(dataCliente: Cliente, clienteId: string, usuarioId: string) {
     try {
       if (!dataCliente?.nome || !dataCliente?.documento) {
         throw new Error(
@@ -12,6 +15,16 @@ class EditCliente {
         );
       }
 
+      // 1. A FOTOGRAFIA DO ANTES: Buscamos o cliente como ele é hoje
+      const clienteAntigo = await prisma.clientes.findUnique({
+        where: { id: clienteId },
+      });
+
+      if (!clienteAntigo) {
+        throw new Error("Cliente não encontrado");
+      }
+
+      // 2. A MUDANÇA: Fazemos o update no banco
       const response = await prisma.clientes.update({
         where: {
           id: clienteId,
@@ -30,14 +43,47 @@ class EditCliente {
           estado: dataCliente?.estado?.trim(),
         },
       });
-      logger.info(`Cliente criado com sucesso!`);
+
+      // Correção do texto do logger
+      logger.info(`Cliente editado com sucesso!`);
+
+      // =========================================================================
+      // 3. TRILHA DE AUDITORIA (FIRE-AND-FORGET)
+      // =========================================================================
+
+      auditEmitter.emit("AUDIT_LOG", {
+        entidade: "CLIENTE",
+        entidadeId: response.id,
+        acao: AcaoLog.UPDATE,
+        atorId: usuarioId, // ID extraído do token
+        dadosAnteriores: {
+          nome: clienteAntigo.nome,
+          documento: clienteAntigo.documento,
+          email: clienteAntigo.email,
+          contato: clienteAntigo.contato,
+          cidade: clienteAntigo.cidade,
+          estado: clienteAntigo.estado,
+          logradouro: clienteAntigo.logradouro,
+          numero: clienteAntigo.numero,
+        },
+        dadosNovos: {
+          nome: response.nome,
+          documento: response.documento,
+          email: response.email,
+          contato: response.contato,
+          cidade: response.cidade,
+          estado: response.estado,
+          logradouro: response.logradouro,
+          numero: response.numero,
+        },
+      });
+
       return response;
     } catch (error) {
       console.error(error);
       throw error;
-    } finally {
-      await prisma.$disconnect();
     }
+    // O bloco finally foi removido permanentemente.
   }
 }
 

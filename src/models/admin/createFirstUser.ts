@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-export const createUser = {
+class CreateFirstUser {
   async execute(
     login: string,
     senha: string,
@@ -67,5 +67,7 @@ export const createUser = {
       console.error("Erro ao criar usuário:", error);
       throw error;
     }
-  },
-};
+  }
+}
+
+export default new CreateFirstUser();

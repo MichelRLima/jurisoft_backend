@@ -15,6 +15,7 @@ class UpdateUser {
     sobrenome: string,
     email: string,
     telefone: string,
+    permissaoId?: string,
   ) {
     try {
       const firstUser = await prisma.usuario.findUnique({
@@ -52,7 +53,7 @@ class UpdateUser {
       }
 
       const isBase64 = foto && foto.startsWith("data:");
-      let caminhoFoto = firstUser?.perfil[0]?.foto || "";
+      let caminhoFoto = firstUser?.perfil?.foto || "";
 
       if (isBase64) {
         logger.debug(
@@ -88,10 +89,11 @@ class UpdateUser {
         },
         data: {
           email,
+          ...(permissaoId && { permissaoId }),
           perfil: {
             update: {
               where: {
-                id: firstUser?.perfil[0]?.id,
+                id: firstUser?.perfil?.id,
               },
               data: {
                 foto: caminhoFoto,
@@ -112,15 +114,15 @@ class UpdateUser {
       }
 
       // 4. Concatena a URL pública para fornecer o link estático direto para o front-end
-      const urlFotoCompleta = updateUser?.perfil[0]?.foto
-        ? `${R2_PUBLIC_URL}/${updateUser.perfil[0].foto}`
+      const urlFotoCompleta = updateUser?.perfil?.foto
+        ? `${R2_PUBLIC_URL}/${updateUser.perfil.foto}`
         : "";
 
       const format = {
         email: updateUser?.email,
-        nome: updateUser?.perfil[0]?.nome,
-        sobrenome: updateUser?.perfil[0]?.sobrenome,
-        telefone: updateUser?.perfil[0]?.telefone,
+        nome: updateUser?.perfil?.nome,
+        sobrenome: updateUser?.perfil?.sobrenome,
+        telefone: updateUser?.perfil?.telefone,
         foto: urlFotoCompleta, // URL final estática pronta para o client-side (Ex: https://pub-...r2.dev/escritorios/...)
       };
 

@@ -1,12 +1,14 @@
 import { Request, Response } from "express";
 
-import deleteUser from "../../models/user/deleteUser";
+import deleteUser from "../../models/admin/deleteUser";
+import { AuthRequest } from "../../middlewares/isAuthenticated";
 
 class DeleteUserController {
-  async handle(req: Request, res: Response) {
+  async handle(req: AuthRequest, res: Response) {
     const { userId } = req.body;
+    const atorId = req.user?.sub;
     try {
-      const response = await deleteUser.execute(userId);
+      const response = await deleteUser.execute(userId, String(atorId));
       res.status(200).json(response);
     } catch (error) {
       console.error(error);

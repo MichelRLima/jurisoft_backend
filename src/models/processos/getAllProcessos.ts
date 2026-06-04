@@ -4,9 +4,26 @@ const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
 
 class GetAllPrcessos {
-  async execute() {
+  async execute(usuarioId: string) {
     try {
+      if (!usuarioId) {
+        throw new Error("Usuário não encontrado!");
+      }
       const allProcessos = await prisma.processos.findMany({
+        where: {
+          OR: [
+            {
+              usuarioCriacaoId: usuarioId,
+            },
+            {
+              usuariosResponsaveis: {
+                some: {
+                  usuarioId: usuarioId,
+                },
+              },
+            },
+          ],
+        },
         select: {
           id: true,
           numeroProcesso: true,
@@ -82,7 +99,7 @@ class GetAllPrcessos {
       const format = allProcessos.map((processo) => {
         // 1. Formata o Usuário de Criação (Gera link completo da foto se existir)
         const uCriacao = processo.usuarioCriacao;
-        const uPerfil = uCriacao?.perfil?.[0];
+        const uPerfil = uCriacao?.perfil;
         const uFotoUrl = uPerfil?.foto
           ? `${R2_PUBLIC_URL}/${uPerfil.foto}`
           : "";
@@ -103,7 +120,7 @@ class GetAllPrcessos {
         const usuariosResponsaveisFormatados =
           processo?.usuariosResponsaveis?.map((responsavel) => {
             const rUsuario = responsavel?.usuario;
-            const rPerfil = rUsuario?.perfil?.[0];
+            const rPerfil = rUsuario?.perfil;
             const rFotoUrl = rPerfil?.foto
               ? `${R2_PUBLIC_URL}/${rPerfil.foto}`
               : "";

@@ -6,15 +6,33 @@ const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
 
 class GetProcessosCliente {
-  async execute(clienteId: string) {
+  async execute(clienteId: string, usuarioId: string) {
     try {
       if (!clienteId) {
         throw new Error("Necessário informar um cliente");
       }
+      if (!usuarioId) {
+        throw new Error("Necessário informar o usuário");
+      }
 
       const allProcessos = await prisma.processos.findMany({
         where: {
+          // 1. Garante que vai trazer apenas os processos deste cliente específico
           clienteId: clienteId,
+
+          // 2. Garante que o usuário logado tem acesso a este processo
+          OR: [
+            {
+              usuarioCriacaoId: usuarioId,
+            },
+            {
+              usuariosResponsaveis: {
+                some: {
+                  usuarioId: usuarioId,
+                },
+              },
+            },
+          ],
         },
         select: {
           id: true,
@@ -91,7 +109,7 @@ class GetProcessosCliente {
       const format = allProcessos.map((processo) => {
         // 1. Formata a foto do Usuário de Criação
         const uCriacao = processo.usuarioCriacao;
-        const uPerfil = uCriacao?.perfil?.[0];
+        const uPerfil = uCriacao?.perfil;
         const uFotoUrl = uPerfil?.foto
           ? `${R2_PUBLIC_URL}/${uPerfil.foto}`
           : "";
@@ -112,7 +130,7 @@ class GetProcessosCliente {
         const usuariosResponsaveisFormatados =
           processo?.usuariosResponsaveis?.map((responsavel) => {
             const rUsuario = responsavel?.usuario;
-            const rPerfil = rUsuario?.perfil?.[0];
+            const rPerfil = rUsuario?.perfil;
             const rFotoUrl = rPerfil?.foto
               ? `${R2_PUBLIC_URL}/${rPerfil.foto}`
               : "";

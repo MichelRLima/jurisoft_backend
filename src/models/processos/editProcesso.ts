@@ -1,5 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, AcaoLog } from "@prisma/client"; // Adicionado AcaoLog
 import logger from "../../utils/logger/logger";
+import { auditEmitter } from "../../services/auditService";
 
 interface UsuarioResponsavel {
   id: string;
@@ -21,19 +22,23 @@ interface Processo {
 }
 
 const prisma = new PrismaClient();
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL; // 1. Adicionada a referência do bucket
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
 
 class EditProcesso {
-  async execute(processo: Processo) {
+  // 👇 Adicionado usuarioId para sabermos quem é o autor da edição
+  async execute(processo: Processo, usuarioId: string) {
     try {
       logger.debug("Iniciando edição do processo", processo.id);
 
+      // 1. A FOTOGRAFIA DO ANTES: Buscamos como o processo está agora
       const firstProcesso = await prisma.processos.findUnique({
         where: {
           id: processo.id,
         },
         include: {
           usuariosResponsaveis: true,
+          status: true, // Incluído para o log ficar legível
+          tipo: true, // Incluído para o log ficar legível
         },
       });
 
@@ -51,34 +56,32 @@ class EditProcesso {
         throw new Error("Cliente não encontrado");
       }
 
-      // 1. Pegamos os IDs atuais que estão no banco
+      // Pegamos os IDs atuais que estão no banco
       const idsAtuais = firstProcesso.usuariosResponsaveis?.map(
         (u) => u.usuarioId,
       );
 
-      // 2. Pegamos os IDs que vieram da requisição
+      // Pegamos os IDs que vieram da requisição
       const idsNovos = processo.usuariosResponsaveis?.map((u) =>
         typeof u === "string" ? u : u.id,
       );
 
-      // 3. Calculamos quem deve ser removido e quem deve ser adicionado
+      // Calculamos quem deve ser removido e quem deve ser adicionado
       const paraRemover =
         idsAtuais?.filter((id) => !idsNovos?.includes(id)) || [];
       const paraAdicionar =
         idsNovos?.filter((id) => !idsAtuais?.includes(id)) || [];
 
-      // 4. Atualizamos os dados do processo e suas relações no banco de dados
+      // 2. A MUDANÇA: Atualizamos os dados no banco
       const response = await prisma.processos.update({
         where: { id: processo.id },
         data: {
           descricao: processo.descricao,
           numeroProcesso: processo.numeroProcesso,
           usuariosResponsaveis: {
-            // Remove apenas as associações que não estão mais na lista
             deleteMany: {
               usuarioId: { in: paraRemover },
             },
-            // Adiciona apenas as novas associações
             create: paraAdicionar.map((id) => ({
               usuarioId: id,
             })),
@@ -130,17 +133,39 @@ class EditProcesso {
         },
       });
 
+      // 3. O REGISTRO: Disparamos o log em background
+      auditEmitter.emit("AUDIT_LOG", {
+        entidade: "PROCESSO",
+        entidadeId: response.id,
+        acao: AcaoLog.UPDATE,
+        atorId: usuarioId,
+        // Montamos o objeto de "Antes" usando a primeira busca
+        dadosAnteriores: {
+          numeroProcesso: firstProcesso.numeroProcesso,
+          descricao: firstProcesso.descricao,
+          status: firstProcesso.status?.nomeStatus,
+          tipo: firstProcesso.tipo?.nomeTipo,
+          responsaveis: idsAtuais, // Salva a lista de IDs de quem cuidava antes
+        },
+        // Montamos o objeto de "Depois" usando a resposta do update
+        dadosNovos: {
+          numeroProcesso: response.numeroProcesso,
+          descricao: response.descricao,
+          status: response.status?.nomeStatus,
+          tipo: response.tipo?.nomeTipo,
+          responsaveis: idsNovos, // Salva a nova lista de responsáveis
+        },
+      });
+
       // =========================================================================
-      // 5. Interceptação para formatar os links completos de foto
+      // Interceptação para formatar os links completos de foto
       // =========================================================================
 
       const responsaveisFormatados = response.usuariosResponsaveis.map(
         (responsavel: any) => {
-          // Tratamento de array caso o Prisma retorne o perfil encapsulado no índice [0]
           const pRespRaw = responsavel.usuario?.perfil;
           const perfilResp = Array.isArray(pRespRaw) ? pRespRaw[0] : pRespRaw;
 
-          // Concatena a URL pública
           const fotoRespUrl = perfilResp?.foto
             ? `${R2_PUBLIC_URL}/${perfilResp.foto}`
             : "";
@@ -152,7 +177,7 @@ class EditProcesso {
               perfil: perfilResp
                 ? {
                     ...perfilResp,
-                    foto: fotoRespUrl, // URL estática final
+                    foto: fotoRespUrl,
                   }
                 : null,
             },
@@ -160,7 +185,6 @@ class EditProcesso {
         },
       );
 
-      // Monta o objeto final preservando a estrutura original do response
       const processoFormatado = {
         ...response,
         usuariosResponsaveis: responsaveisFormatados,
@@ -168,13 +192,10 @@ class EditProcesso {
 
       logger.info(`Processo ${processo.id} editado com sucesso!`);
 
-      // 6. Retorna o objeto formatado em vez da resposta pura do banco
       return processoFormatado;
     } catch (error) {
       logger.error("Erro no Model de EditProcesso:", error);
       throw error;
-    } finally {
-      await prisma.$disconnect();
     }
   }
 }

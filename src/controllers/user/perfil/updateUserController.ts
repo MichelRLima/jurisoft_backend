@@ -3,7 +3,7 @@ import updateUser from "../../../models/user/perfil/updateUser";
 
 class UpdateUserController {
   async handle(req: Request, res: Response) {
-    const { userId, foto, nome, sobrenome, email, telefone } = req.body;
+    const { userId, foto, nome, sobrenome, email, telefone, permissaoId } = req.body;
     try {
       const response = await updateUser.execute(
         userId,
@@ -12,6 +12,7 @@ class UpdateUserController {
         sobrenome,
         email,
         telefone,
+        permissaoId
       );
       res.status(200).json(response);
     } catch (error) {

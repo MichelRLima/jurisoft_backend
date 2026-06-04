@@ -1,6 +1,5 @@
 import { Router, Request, Response } from "express";
 
-const createUserController = require("./controllers/user/createUserController");
 const loginUserController = require("./controllers/user/loginUserController");
 import { isAuthenticated } from "./middlewares/isAuthenticated";
 
@@ -26,8 +25,13 @@ import getDetailsClienteController from "./controllers/clientes/getDetailsClient
 import getProcessosClienteController from "./controllers/clientes/getProcessosClienteController";
 import editClienteController from "./controllers/clientes/editClienteController";
 import findPermissaoController from "./controllers/user/findPermissaoController";
-import deleteUserController from "./controllers/user/deleteUserController";
+import deleteUserController from "./controllers/admin/deleteUserController";
 import findAllUserProcessoController from "./controllers/processos/findAllUserProcessoController";
+import createUserController from "./controllers/admin/createUserController";
+import { ensurePermission } from "./middlewares/hasPermission";
+import findLogsController from "./controllers/admin/findLogsController";
+import updateUserAdminController from "./controllers/admin/updateUserAdminController";
+import refreshTokenUserController from "./controllers/user/refreshTokenUserController";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const routes = Router();
@@ -39,12 +43,10 @@ routes.get("/ping", (req: Request, res: Response) => {
 
 // Rota para o usuário digitar o email e receber o código de 4 dígitos
 routes.post("/auth/forgotPassword", ForgotPasswordController.handle);
-
+routes.post("/refreshToken", refreshTokenUserController.handle);
 // Rota onde o usuário envia o email, o código recebido e a senha nova
 routes.post("/auth/forgotResetPassword", forgotResetPasswordController.handle);
 
-routes.post("/createUser", isAuthenticated, createUserController.handle);
-routes.post("/delete/user", isAuthenticated, deleteUserController.handle);
 routes.post("/login", loginUserController.handle);
 
 routes.put("/update/perfil", isAuthenticated, updatePerfilController.handle);
@@ -54,14 +56,6 @@ routes.post(
   isAuthenticated,
   updatePasswordController.handle,
 );
-// --- NOVAS ROTAS DO GOOGLE DRIVE ---
-
-// Usamos upload.single('file') para dizer que esperamos UM arquivo chamado 'file'
-/* routes.post(
-  "/drive/upload",
-  upload.single("file"),
-  googleUploadFileController.handle,
-); */
 
 routes.post(
   "/create/processo",
@@ -85,10 +79,23 @@ routes.post(
 routes.post(
   "/delete/processo",
   isAuthenticated,
+  ensurePermission(["DEV", "ADV"]),
   deleteProcessoController.handle,
 );
 
-routes.post("/edit/processo", isAuthenticated, editProcessoController.handle);
+routes.post(
+  "/find/logs",
+  isAuthenticated,
+  ensurePermission(["DEV", "ADV"]),
+  findLogsController.handle,
+);
+
+routes.post(
+  "/edit/processo",
+  isAuthenticated,
+  ensurePermission(["DEV", "ADV"]),
+  editProcessoController.handle,
+);
 
 routes.post(
   "/find/processoDetails",
@@ -102,7 +109,32 @@ routes.post(
   deleteAnexoProcessoController.handle,
 );
 
-routes.get("/find/allUsers", isAuthenticated, findAllUserController.handle);
+routes.get(
+  "/find/allUsers",
+  isAuthenticated,
+  ensurePermission(["DEV", "ADV"]),
+  findAllUserController.handle,
+);
+routes.post(
+  "/createUser",
+  isAuthenticated,
+  ensurePermission(["DEV", "ADV"]),
+  createUserController.handle,
+);
+routes.post(
+  "/delete/user",
+  isAuthenticated,
+  ensurePermission(["DEV", "ADV"]),
+  deleteUserController.handle,
+);
+
+routes.post(
+  "/update/admin/user",
+  isAuthenticated,
+  ensurePermission(["DEV", "ADV"]),
+  updateUserAdminController.handle,
+);
+
 routes.get(
   "/find/processo/allUsers",
   isAuthenticated,
@@ -112,10 +144,25 @@ routes.get(
 routes.get("/find/permissoes", isAuthenticated, findPermissaoController.handle);
 
 /* CLIENTE */
-routes.post("/create/cliente", isAuthenticated, createClienteController.handle);
-routes.post("/edit/cliente", isAuthenticated, editClienteController.handle);
+routes.post(
+  "/create/cliente",
+  isAuthenticated,
+  ensurePermission(["DEV", "ADV"]),
+  createClienteController.handle,
+);
+routes.post(
+  "/edit/cliente",
+  isAuthenticated,
+  ensurePermission(["DEV", "ADV"]),
+  editClienteController.handle,
+);
 routes.get("/find/clientes", isAuthenticated, getClientesController.handle);
-routes.post("/delete/cliente", isAuthenticated, deleteClienteController.handle);
+routes.post(
+  "/delete/cliente",
+  isAuthenticated,
+  ensurePermission(["DEV", "ADV"]),
+  deleteClienteController.handle,
+);
 routes.post(
   "/find/clienteDetails",
   isAuthenticated,

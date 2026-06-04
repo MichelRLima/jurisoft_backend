@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { createUser } from "../models/user/createUser";
+import createFirstUser from "../models/admin/createFirstUser";
 
 const prisma = new PrismaClient();
 
@@ -128,7 +128,7 @@ const inicializeUsers = async () => {
           codigoPermissao: "DEV",
         },
       });
-      await createUser.execute(
+      await createFirstUser.execute(
         user?.login,
         user?.password,
         user?.email,

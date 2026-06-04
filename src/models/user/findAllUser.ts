@@ -7,6 +7,9 @@ class FindAllUser {
   async execute() {
     try {
       const users = await prisma.usuario.findMany({
+        where: {
+          status: 1,
+        },
         include: {
           perfil: true,
           permissao: true,
@@ -15,7 +18,7 @@ class FindAllUser {
 
       const formatUsers = users.map((user) => {
         // Extrai o perfil (lidando com o retorno em formato de array do Prisma)
-        const perfil = user?.perfil?.[0];
+        const perfil = user?.perfil;
 
         // Concatena a URL pública se o caminho da foto existir no banco
         const fotoUrlCompleta = perfil?.foto

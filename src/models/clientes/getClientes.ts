@@ -6,8 +6,11 @@ import logger from "../../utils/logger/logger";
 const prisma = new PrismaClient();
 
 class GetClientes {
-  async execute() {
+  async execute(usuarioId: string) {
     try {
+      if (!usuarioId) {
+        throw new Error("Usuário não encontrado!");
+      }
       const response = await prisma.clientes.findMany({
         select: {
           id: true,
@@ -15,7 +18,23 @@ class GetClientes {
           documento: true,
           _count: {
             select: {
-              processos: true,
+              // Em vez de passar apenas 'true', nós abrimos um objeto e passamos o where
+              processos: {
+                where: {
+                  OR: [
+                    {
+                      usuarioCriacaoId: usuarioId,
+                    },
+                    {
+                      usuariosResponsaveis: {
+                        some: {
+                          usuarioId: usuarioId,
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
             },
           },
         },

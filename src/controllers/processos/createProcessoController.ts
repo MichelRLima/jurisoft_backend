@@ -1,13 +1,12 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import createProcesso from "../../models/processos/createProcesso";
+import { AuthRequest } from "../../middlewares/isAuthenticated";
+import { log } from "console";
 
 class CreateProcessoController {
-  async handle(req: Request, res: Response) {
+  async handle(req: AuthRequest, res: Response) {
     const files = req.files as Express.Multer.File[];
-    const userIdHeader = req.headers["x-user-id"];
-    const usuarioId = Array.isArray(userIdHeader)
-      ? userIdHeader[0]
-      : userIdHeader;
+    const usuarioId = req.user?.sub;
 
     if (!usuarioId) {
       res.status(401).json({ error: "Usuário não identificado." });
