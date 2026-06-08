@@ -14,23 +14,26 @@ datasource db {
 }
 
 model Usuario {
-  id                    String              @id @default(uuid())
-  login                 String?             @unique
+  id                    String                 @id @default(uuid())
+  login                 String?                @unique
   senha                 String?
-  email                 String?             @unique
-  status                Int                 @default(1)
+  email                 String?                @unique
+  status                Int                    @default(1)
   passwordResetCode     String?
   passwordResetExpires  DateTime?
-  passwordResetAttempts Int                 @default(0)
+  passwordResetAttempts Int                    @default(0)
   permissaoId           String
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
   RefreshToken          RefreshToken[]
   perfil                Perfil?
   processos             Processos[]
   rlUsuarioProcesso     RlUsuarioProcesso[]
   auditLogs             AuditLog[]
-  permissao             Permissoes          @relation(fields: [permissaoId], references: [id])
+  atualizacoes          AtualizacoesProcesso[]
+  permissao             Permissoes             @relation(fields: [permissaoId], references: [id])
+  notificacoesFeitas    Notificacao[]
+  notificacoesRecebidas RlNotificacaoUsuario[]
 
   @@map("usuario")
 }
@@ -96,21 +99,23 @@ model Clientes {
 }
 
 model Processos {
-  id                   String              @id @default(uuid())
-  numeroProcesso       String              @unique
-  descricao            String              @db.Text
+  id                   String                 @id @default(uuid())
+  numeroProcesso       String                 @unique
+  descricao            String                 @db.Text
   usuarioCriacaoId     String
   statusId             String
   tipoId               String
   clienteId            String
-  status               StatusProcesso      @relation(fields: [statusId], references: [id])
-  tipo                 TipoProcesso        @relation(fields: [tipoId], references: [id])
-  usuarioCriacao       Usuario             @relation(fields: [usuarioCriacaoId], references: [id])
+  status               StatusProcesso         @relation(fields: [statusId], references: [id])
+  tipo                 TipoProcesso           @relation(fields: [tipoId], references: [id])
+  usuarioCriacao       Usuario                @relation(fields: [usuarioCriacaoId], references: [id])
   usuariosResponsaveis RlUsuarioProcesso[]
   anexosProcesso       AnexosProcesso[]
-  cliente              Clientes            @relation(fields: [clienteId], references: [id], onDelete: Cascade)
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime?           @updatedAt
+  atualizacoes         AtualizacoesProcesso[]
+  notificacoes         Notificacao[]
+  cliente              Clientes               @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime?              @updatedAt
 
   @@map("processos")
 }
@@ -135,9 +140,10 @@ model StatusProcesso {
   nomeStatus   String
   ativo        Boolean @default(true)
 
-  processos Processos[]
-  createdAt DateTime    @default(now())
-  updatedAt DateTime?   @updatedAt
+  processos    Processos[]
+  atualizacoes AtualizacoesProcesso[]
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime?              @updatedAt
 
   @@map("statusProcesso")
 }
@@ -192,4 +198,65 @@ model AuditLog {
 
   @@index([entidade, entidadeId]) // Índice para buscas ultra rápidas no banco
   @@map("audit_logs")
+}
+
+model AtualizacoesProcesso {
+  id         String         @id @default(uuid())
+  processoId String
+  usuarioId  String
+  conteudo   String         @db.Text
+  statusId   String
+  status     StatusProcesso @relation(fields: [statusId], references: [id])
+  usuario    Usuario        @relation(fields: [usuarioId], references: [id])
+  processo   Processos      @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@map("atualizacoesProcesso")
+}
+
+// Enum opcional para tipar as ações e facilitar no Frontend (mude os valores conforme seu sistema)
+enum TipoNotificacao {
+  ATUALIZACAO_PROCESSO
+}
+
+model Notificacao {
+  id        String          @id @default(uuid())
+  tipo      TipoNotificacao
+  descricao String          @db.Text
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  // Quem realizou a ação (O Ator)
+  usuarioAtorId String
+  usuarioAtor   Usuario @relation(fields: [usuarioAtorId], references: [id])
+
+  // O Processo relacionado à notificação (Opcional, pois pode haver notificações gerais)
+  processoId String?
+  processo   Processos? @relation(fields: [processoId], references: [id], onDelete: Cascade)
+
+  // Relação com a tabela intermediária que diz quem vai receber
+  destinatarios RlNotificacaoUsuario[]
+
+  @@map("notificacao")
+}
+
+// Tabela de relacionamento (Pivot) para controlar o status de leitura por usuário
+model RlNotificacaoUsuario {
+  id        String    @id @default(uuid())
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  usuarioId String
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  notificacaoId String
+  notificacao   Notificacao @relation(fields: [notificacaoId], references: [id], onDelete: Cascade)
+
+  // Garante que o mesmo usuário não receba duas vezes a mesma linha de notificação
+  @@unique([usuarioId, notificacaoId])
+  // Índice essencial para a query do "sininho" rodar rápido no banco
+  @@index([usuarioId, isRead])
+  @@map("rl_notificacao_usuario")
 }

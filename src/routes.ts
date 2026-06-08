@@ -32,6 +32,9 @@ import { ensurePermission } from "./middlewares/hasPermission";
 import findLogsController from "./controllers/admin/findLogsController";
 import updateUserAdminController from "./controllers/admin/updateUserAdminController";
 import refreshTokenUserController from "./controllers/user/refreshTokenUserController";
+import createAtualizacaoProcessoController from "./controllers/processos/createAtualizacaoProcessoController";
+import editAtualiazacaoProcessoController from "./controllers/processos/editAtualizacaoProcessoController";
+import findNotificacoesController from "./controllers/notificacoes/findNotificacoesController";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const routes = Router();
@@ -63,6 +66,19 @@ routes.post(
   upload.array("file"),
   createProcessoController.handle,
 );
+
+routes.post(
+  "/create/atualizacaoProcesso",
+  isAuthenticated,
+  createAtualizacaoProcessoController.handle,
+);
+
+routes.post(
+  "/edit/atualizacaoProcesso",
+  isAuthenticated,
+  editAtualiazacaoProcessoController.handle,
+);
+
 routes.post(
   "/create/anexo",
   upload.array("file"),
@@ -142,6 +158,13 @@ routes.get(
 );
 
 routes.get("/find/permissoes", isAuthenticated, findPermissaoController.handle);
+
+/* NOTIFICAÇÕES */
+routes.post(
+  "/find/notificacoes",
+  isAuthenticated,
+  findNotificacoesController.handle,
+);
 
 /* CLIENTE */
 routes.post(

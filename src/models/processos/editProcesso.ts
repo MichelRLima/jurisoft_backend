@@ -1,4 +1,4 @@
-import { PrismaClient, AcaoLog } from "@prisma/client"; // Adicionado AcaoLog
+import { PrismaClient, AcaoLog } from "@prisma/client";
 import logger from "../../utils/logger/logger";
 import { auditEmitter } from "../../services/auditService";
 
@@ -6,7 +6,6 @@ interface UsuarioResponsavel {
   id: string;
 }
 
-// Interface principal do Processo
 interface Processo {
   id: string;
   contato: string;
@@ -25,48 +24,34 @@ const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
 
 class EditProcesso {
-  // 👇 Adicionado usuarioId para sabermos quem é o autor da edição
   async execute(processo: Processo, usuarioId: string) {
     try {
       logger.debug("Iniciando edição do processo", processo.id);
 
-      // 1. A FOTOGRAFIA DO ANTES: Buscamos como o processo está agora
       const firstProcesso = await prisma.processos.findUnique({
-        where: {
-          id: processo.id,
-        },
+        where: { id: processo.id },
         include: {
           usuariosResponsaveis: true,
-          status: true, // Incluído para o log ficar legível
-          tipo: true, // Incluído para o log ficar legível
+          status: true,
+          tipo: true,
         },
       });
 
-      if (!firstProcesso) {
-        throw new Error("Processo não encontrado");
-      }
+      if (!firstProcesso) throw new Error("Processo não encontrado");
 
       const cliente = await prisma.clientes.findUnique({
-        where: {
-          id: processo.clienteId,
-        },
+        where: { id: processo.clienteId },
       });
 
-      if (!cliente) {
-        throw new Error("Cliente não encontrado");
-      }
+      if (!cliente) throw new Error("Cliente não encontrado");
 
-      // Pegamos os IDs atuais que estão no banco
       const idsAtuais = firstProcesso.usuariosResponsaveis?.map(
         (u) => u.usuarioId,
       );
-
-      // Pegamos os IDs que vieram da requisição
       const idsNovos = processo.usuariosResponsaveis?.map((u) =>
         typeof u === "string" ? u : u.id,
       );
 
-      // Calculamos quem deve ser removido e quem deve ser adicionado
       const paraRemover =
         idsAtuais?.filter((id) => !idsNovos?.includes(id)) || [];
       const paraAdicionar =
@@ -79,24 +64,30 @@ class EditProcesso {
           descricao: processo.descricao,
           numeroProcesso: processo.numeroProcesso,
           usuariosResponsaveis: {
-            deleteMany: {
-              usuarioId: { in: paraRemover },
-            },
-            create: paraAdicionar.map((id) => ({
-              usuarioId: id,
-            })),
+            deleteMany: { usuarioId: { in: paraRemover } },
+            create: paraAdicionar.map((id) => ({ usuarioId: id })),
           },
-          status: {
-            connect: { codigoStatus: processo.status },
-          },
-          tipo: {
-            connect: { codigoTipo: processo.tipo },
-          },
-          cliente: {
-            connect: { id: cliente.id },
-          },
+          status: { connect: { codigoStatus: processo.status } },
+          tipo: { connect: { codigoTipo: processo.tipo } },
+          cliente: { connect: { id: cliente.id } },
         },
         include: {
+          // 👇 ADICIONADO: Buscando o criador do processo e sua permissão
+          usuarioCriacao: {
+            select: {
+              id: true,
+              email: true,
+              permissao: true, // Traz a permissão completa do criador
+              perfil: {
+                select: {
+                  id: true,
+                  nome: true,
+                  sobrenome: true,
+                  foto: true,
+                },
+              },
+            },
+          },
           usuariosResponsaveis: {
             select: {
               usuario: {
@@ -104,6 +95,7 @@ class EditProcesso {
                   id: true,
                   email: true,
                   login: true,
+                  permissao: true, // 👇 ADICIONADO: Traz a permissão completa dos responsáveis
                   perfil: {
                     select: {
                       id: true,
@@ -117,43 +109,30 @@ class EditProcesso {
             },
           },
           status: {
-            select: {
-              codigoStatus: true,
-              id: true,
-              nomeStatus: true,
-            },
+            select: { codigoStatus: true, id: true, nomeStatus: true },
           },
-          tipo: {
-            select: {
-              codigoTipo: true,
-              id: true,
-              nomeTipo: true,
-            },
-          },
+          tipo: { select: { codigoTipo: true, id: true, nomeTipo: true } },
         },
       });
 
-      // 3. O REGISTRO: Disparamos o log em background
       auditEmitter.emit("AUDIT_LOG", {
         entidade: "PROCESSO",
         entidadeId: response.id,
         acao: AcaoLog.UPDATE,
         atorId: usuarioId,
-        // Montamos o objeto de "Antes" usando a primeira busca
         dadosAnteriores: {
           numeroProcesso: firstProcesso.numeroProcesso,
           descricao: firstProcesso.descricao,
           status: firstProcesso.status?.nomeStatus,
           tipo: firstProcesso.tipo?.nomeTipo,
-          responsaveis: idsAtuais, // Salva a lista de IDs de quem cuidava antes
+          responsaveis: idsAtuais,
         },
-        // Montamos o objeto de "Depois" usando a resposta do update
         dadosNovos: {
           numeroProcesso: response.numeroProcesso,
           descricao: response.descricao,
           status: response.status?.nomeStatus,
           tipo: response.tipo?.nomeTipo,
-          responsaveis: idsNovos, // Salva a nova lista de responsáveis
+          responsaveis: idsNovos,
         },
       });
 
@@ -161,11 +140,11 @@ class EditProcesso {
       // Interceptação para formatar os links completos de foto
       // =========================================================================
 
+      // Formatação da foto dos responsáveis
       const responsaveisFormatados = response.usuariosResponsaveis.map(
         (responsavel: any) => {
           const pRespRaw = responsavel.usuario?.perfil;
           const perfilResp = Array.isArray(pRespRaw) ? pRespRaw[0] : pRespRaw;
-
           const fotoRespUrl = perfilResp?.foto
             ? `${R2_PUBLIC_URL}/${perfilResp.foto}`
             : "";
@@ -174,19 +153,35 @@ class EditProcesso {
             ...responsavel,
             usuario: {
               ...responsavel.usuario,
-              perfil: perfilResp
-                ? {
-                    ...perfilResp,
-                    foto: fotoRespUrl,
-                  }
-                : null,
+              perfil: perfilResp ? { ...perfilResp, foto: fotoRespUrl } : null,
             },
           };
         },
       );
 
+      // 👇 ADICIONADO: Formatação da foto do criador (para não quebrar no front)
+      let criadorFormatado = null;
+      if (response.usuarioCriacao) {
+        const pCriadorRaw = (response.usuarioCriacao as any).perfil;
+        const perfilCriador = Array.isArray(pCriadorRaw)
+          ? pCriadorRaw[0]
+          : pCriadorRaw;
+        const fotoCriadorUrl = perfilCriador?.foto
+          ? `${R2_PUBLIC_URL}/${perfilCriador.foto}`
+          : "";
+
+        criadorFormatado = {
+          ...response.usuarioCriacao,
+          perfil: perfilCriador
+            ? { ...perfilCriador, foto: fotoCriadorUrl }
+            : null,
+        };
+      }
+
+      // Montando o objeto final que vai pro front-end
       const processoFormatado = {
         ...response,
+        usuarioCriacao: criadorFormatado, // Substitui pelo criador com a foto formatada
         usuariosResponsaveis: responsaveisFormatados,
       };
 

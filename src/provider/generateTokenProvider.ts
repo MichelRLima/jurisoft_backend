@@ -13,7 +13,7 @@ class GenerateToken {
 
     const token = sign({}, secret, {
       subject: userId,
-      expiresIn: "15m",
+      expiresIn: "10s",
     });
 
     return token;

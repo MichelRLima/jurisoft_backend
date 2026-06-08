@@ -1,14 +1,22 @@
 import { PrismaClient } from "@prisma/client";
 import logger from "../../utils/logger/logger";
 import { uploadFile, getSecureUrl } from "../../services/storageService"; // Importando o serviço do R2
+import createAtualizacaoProcesso from "./createAtualizacaoProcesso";
 
 const prisma = new PrismaClient();
 
 class CreateAnexo {
-  async execute(processoId: string, files: Express.Multer.File[]) {
+  async execute(
+    processoId: string,
+    files: Express.Multer.File[],
+    usuarioId: string,
+  ) {
     try {
       if (!files || files.length === 0) {
         throw new Error("Nenhum anexo para salvar");
+      }
+      if (!usuarioId) {
+        throw new Error("Necessário informar o usuário");
       }
 
       // Busca dados essenciais do processo para montar o caminho estruturado das pastas no R2
@@ -20,6 +28,11 @@ class CreateAnexo {
           id: true,
           numeroProcesso: true,
           clienteId: true,
+          status: {
+            select: {
+              codigoStatus: true,
+            },
+          },
         },
       });
 
@@ -63,6 +76,7 @@ class CreateAnexo {
       // =========================================================================
       // FASE 2: GRAVAÇÃO DAS REFERÊNCIAS NO BANCO DE DADOS (PRISMA)
       // =========================================================================
+      let createAtualizacao = null;
       if (arquivosParaSalvar.length > 0) {
         logger.debug("Salvando novos anexos no banco de dados...");
         await prisma.anexosProcesso.createMany({
@@ -72,6 +86,19 @@ class CreateAnexo {
             processoId: processo.id,
           })),
         });
+
+        // Lista os nomes formatados com um traço ou marcador
+        const listaNomes = arquivosParaSalvar
+          .map((arq) => `- ${arq.nome}`)
+          .join("\n");
+
+        const mensagem = `Adicionados novos anexos ao processo:\n${listaNomes}`;
+        createAtualizacao = await createAtualizacaoProcesso.execute(
+          usuarioId,
+          processoId,
+          mensagem,
+          processo.status.codigoStatus,
+        );
       }
 
       // =========================================================================
@@ -103,7 +130,10 @@ class CreateAnexo {
         }),
       );
 
-      return anexosComLinksTemporarios;
+      return {
+        anexos: anexosComLinksTemporarios,
+        ...(createAtualizacao && { atualizacao: createAtualizacao }),
+      };
     } catch (error) {
       logger.error("Erro no Model de CreateAnexo:", error);
       throw error;

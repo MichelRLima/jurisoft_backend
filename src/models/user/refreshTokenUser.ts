@@ -7,6 +7,10 @@ const prisma = new PrismaClient();
 class RefreshTokenUser {
   async execute(refresh_token: string) {
     try {
+      console.log(
+        "############################## ACIONANDO REFRASH TOKEN ################################",
+      );
+
       if (!refresh_token) {
         throw Object.assign(new Error("Refresh token é obrigatório"), {
           status: 400,
@@ -46,26 +50,26 @@ class RefreshTokenUser {
       const secret = process.env.JWT_SECRET || "sua_chave_secreta_aqui";
       const token = sign({}, secret, {
         subject: refreshTokenExists.usuarioId,
-        expiresIn: "15m", // Dura pouco tempo por segurança
+        expiresIn: "10s", // Dura pouco tempo por segurança
       });
 
       // 4. ROTATIVIDADE (Segurança Avançada)
       // Apagamos o Refresh Token que acabou de ser usado...
-      await prisma.refreshToken.delete({
-        where: { id: refresh_token },
-      });
+      // await prisma.refreshToken.delete({
+      //   where: { id: refresh_token },
+      // });
 
-      // ... e criamos um novo para o usuário usar da próxima vez (válido por mais 30 dias)
-      const novoExpiresIn = dayjs().add(30, "days").unix();
-      const novoRefreshToken = await prisma.refreshToken.create({
-        data: {
-          usuarioId: refreshTokenExists.usuarioId,
-          expiresIn: novoExpiresIn,
-        },
-      });
+      // // ... e criamos um novo para o usuário usar da próxima vez (válido por mais 30 dias)
+      // const novoExpiresIn = dayjs().add(30, "days").unix();
+      // const novoRefreshToken = await prisma.refreshToken.create({
+      //   data: {
+      //     usuarioId: refreshTokenExists.usuarioId,
+      //     expiresIn: novoExpiresIn,
+      //   },
+      // });
 
       // Devolvemos o Crachá (token) e a nova Identidade (refreshToken)
-      return { token, refreshToken: novoRefreshToken };
+      return { token, refreshToken: refreshTokenExists };
     } catch (error) {
       console.error(error);
       throw error;

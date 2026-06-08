@@ -87,6 +87,7 @@ class GetAllPrcessos {
           _count: {
             select: {
               anexosProcesso: true,
+              atualizacoes: true,
             },
           },
         },
@@ -139,6 +140,7 @@ class GetAllPrcessos {
         return {
           ...processo,
           anexos: processo?._count?.anexosProcesso || 0,
+          atualizacoes: processo?._count?.atualizacoes || 0,
           usuarioCriacao: usuarioCriacaoFormatado,
           usuariosResponsaveis: usuariosResponsaveisFormatados,
         };

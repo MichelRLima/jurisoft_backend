@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import logger from "../../utils/logger/logger";
 import { getSecureUrl } from "../../services/storageService";
+import { io } from "../..";
 
 const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
@@ -34,7 +35,6 @@ class GetDetailsProcesso {
           ],
         },
         select: {
-          // ... (seu select continua exatamente igual)
           id: true,
           numeroProcesso: true,
           descricao: true,
@@ -44,6 +44,7 @@ class GetDetailsProcesso {
               id: true,
               email: true,
               login: true,
+              permissao: true,
               perfil: {
                 select: { id: true, nome: true, sobrenome: true, foto: true },
               },
@@ -62,6 +63,7 @@ class GetDetailsProcesso {
                   id: true,
                   email: true,
                   login: true,
+                  permissao: true,
                   perfil: {
                     select: {
                       id: true,
@@ -92,6 +94,34 @@ class GetDetailsProcesso {
               cidade: true,
               estado: true,
             },
+          },
+          atualizacoes: {
+            select: {
+              id: true,
+              conteudo: true,
+              createdAt: true,
+              updatedAt: true,
+              usuario: {
+                select: {
+                  id: true,
+                  email: true,
+                  login: true,
+                  permissao: true,
+                  perfil: {
+                    select: {
+                      id: true,
+                      nome: true,
+                      sobrenome: true,
+                      foto: true,
+                    },
+                  },
+                },
+              },
+              status: {
+                select: { id: true, codigoStatus: true, nomeStatus: true },
+              },
+            },
+            orderBy: { createdAt: "asc" },
           },
         },
       });
@@ -144,6 +174,32 @@ class GetDetailsProcesso {
           };
         });
 
+      // Formata os Usuários das Atualizações
+      const atualizacoesFormatadas = detailsProcesso.atualizacoes.map(
+        (atualizacao) => {
+          const aUsuario = atualizacao.usuario;
+          const aPerfil = aUsuario?.perfil;
+          const aFotoUrl = aPerfil?.foto
+            ? `${R2_PUBLIC_URL}/${aPerfil.foto}`
+            : "";
+
+          return {
+            ...atualizacao,
+            usuario: aUsuario
+              ? {
+                  ...aUsuario,
+                  perfil: aPerfil
+                    ? {
+                        ...aPerfil,
+                        foto: aFotoUrl, // Link estático e permanente
+                      }
+                    : null,
+                }
+              : null,
+          };
+        },
+      );
+
       // =========================================================================
       // 2. GERAÇÃO DE LINKS SEGUROS PARA OS ANEXOS (Bucket Privado - Assíncrono)
       // =========================================================================
@@ -164,11 +220,16 @@ class GetDetailsProcesso {
         }),
       );
 
-      // Retorna o objeto combinando os links públicos instantâneos com as URLs seguras geradas
+      io.to(`user_${usuarioCriacaoFormatado?.id}`).emit("nova_notificacao", {
+        titulo: "Atualização no Processo",
+        mensagem: "teste de envio de notificação",
+      });
+
       return {
         ...detailsProcesso,
         usuarioCriacao: usuarioCriacaoFormatado,
         usuariosResponsaveis: usuariosResponsaveisFormatados,
+        atualizacoes: atualizacoesFormatadas, // Array formatado adicionado ao retorno
         anexosProcesso: anexosComLinksTemporarios,
       };
     } catch (error) {
