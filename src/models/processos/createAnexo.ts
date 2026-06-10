@@ -1,8 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import logger from "../../utils/logger/logger";
 import { uploadFile, getSecureUrl } from "../../services/storageService"; // Importando o serviço do R2
-import createAtualizacaoProcesso from "./createAtualizacaoProcesso";
+import { io } from "../.."; // Importando o socket.io
 
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || "";
 const prisma = new PrismaClient();
 
 class CreateAnexo {
@@ -20,6 +21,7 @@ class CreateAnexo {
       }
 
       // Busca dados essenciais do processo para montar o caminho estruturado das pastas no R2
+      // Adicionados 'usuarioCriacaoId' e 'usuariosResponsaveis' para a notificação
       const processo = await prisma.processos.findUnique({
         where: {
           id: processoId,
@@ -28,8 +30,13 @@ class CreateAnexo {
           id: true,
           numeroProcesso: true,
           clienteId: true,
+          usuarioCriacaoId: true,
+          usuariosResponsaveis: {
+            select: { usuarioId: true },
+          },
           status: {
             select: {
+              id: true,
               codigoStatus: true,
             },
           },
@@ -74,7 +81,7 @@ class CreateAnexo {
       logger.debug("Todos os uploads no Cloudflare R2 foram concluídos.");
 
       // =========================================================================
-      // FASE 2: GRAVAÇÃO DAS REFERÊNCIAS NO BANCO DE DADOS (PRISMA)
+      // FASE 2: GRAVAÇÃO DAS REFERÊNCIAS NO BANCO DE DADOS E NOTIFICAÇÕES
       // =========================================================================
       let createAtualizacao = null;
       if (arquivosParaSalvar.length > 0) {
@@ -93,12 +100,127 @@ class CreateAnexo {
           .join("\n");
 
         const mensagem = `Adicionados novos anexos ao processo:\n${listaNomes}`;
-        createAtualizacao = await createAtualizacaoProcesso.execute(
-          usuarioId,
-          processoId,
-          mensagem,
-          processo.status.codigoStatus,
-        );
+
+        createAtualizacao = await prisma.atualizacoesProcesso.create({
+          data: {
+            usuarioId,
+            processoId,
+            conteudo: mensagem,
+            statusId: processo.status.id,
+            tipo: "ANEXOS",
+          },
+          select: {
+            id: true,
+            conteudo: true,
+            tipo: true,
+            createdAt: true,
+            usuario: {
+              select: {
+                id: true,
+                email: true,
+                login: true,
+                permissao: {
+                  select: {
+                    id: true,
+                    codigoPermissao: true,
+                    nomePermissao: true,
+                    descricaoPermissao: true,
+                    ativo: true,
+                    tipo: true,
+                    createdAt: true,
+                    updatedAt: true,
+                  },
+                },
+                perfil: {
+                  select: { id: true, nome: true, sobrenome: true, foto: true },
+                },
+              },
+            },
+            status: {
+              select: { id: true, codigoStatus: true, nomeStatus: true },
+            },
+          },
+        });
+
+        createAtualizacao = {
+          ...createAtualizacao,
+          usuario: {
+            ...createAtualizacao.usuario,
+            perfil: {
+              ...createAtualizacao.usuario?.perfil,
+              foto: createAtualizacao.usuario?.perfil?.foto
+                ? `${R2_PUBLIC_URL}/${createAtualizacao.usuario?.perfil?.foto}`
+                : null,
+            },
+          },
+        };
+
+        // ====================================================================
+        // FASE 2.5: LÓGICA DE NOTIFICAÇÃO (SOCKET E BANCO)
+        // ====================================================================
+        const destinatariosSet = new Set<string>();
+
+        if (processo.usuarioCriacaoId) {
+          destinatariosSet.add(processo.usuarioCriacaoId);
+        }
+
+        processo.usuariosResponsaveis.forEach((resp) => {
+          destinatariosSet.add(resp.usuarioId);
+        });
+
+        // Remove o usuário que está fazendo o upload (ator)
+        destinatariosSet.delete(usuarioId);
+        const destinatariosFinal = Array.from(destinatariosSet);
+
+        if (destinatariosFinal.length > 0) {
+          const notificacao = await prisma.notificacao.create({
+            data: {
+              tipo: "NOVO_ANEXO",
+              descricao: `adicionou ${arquivosParaSalvar.length} novo(s) anexo(s) ao processo.`,
+              usuarioAtorId: usuarioId,
+              processoId: processoId,
+              destinatarios: {
+                create: destinatariosFinal.map((id) => ({
+                  usuarioId: id,
+                })),
+              },
+            },
+            include: {
+              destinatarios: true,
+            },
+          });
+
+          const perfilAtor = createAtualizacao.usuario?.perfil;
+          const nomeCompleto = perfilAtor
+            ? `${perfilAtor.nome || ""} ${perfilAtor.sobrenome || ""}`.trim()
+            : "Usuário do Sistema";
+
+          // Como já formatamos a URL da foto no createAtualizacao ali em cima, podemos apenas reaproveitar
+          const fotoUrl = perfilAtor?.foto || null;
+
+          // Emite o socket individualmente para cada destinatário
+          notificacao.destinatarios.forEach((destinatario) => {
+            io.to(`user_${destinatario.usuarioId}`).emit(
+              "notificacao_atualizacao",
+              {
+                id: destinatario.id,
+                isRead: destinatario.isRead,
+                tipo: notificacao.tipo,
+                createdAt: notificacao.createdAt,
+                descricao: notificacao.descricao,
+                usuarioAtor: {
+                  nome: nomeCompleto,
+                  foto: fotoUrl,
+                },
+                processo: {
+                  numeroProcesso: processo.numeroProcesso,
+                  id: processoId,
+                },
+              },
+            );
+          });
+        }
+        // ====================================================================
       }
 
       // =========================================================================
@@ -125,7 +247,7 @@ class CreateAnexo {
           return {
             id: anexo.id,
             nome: anexo.nome,
-            url: urlSegura, // Nova propriedade contendo o link pronto para uso imediato no front-end
+            url: urlSegura,
           };
         }),
       );
@@ -138,6 +260,8 @@ class CreateAnexo {
       logger.error("Erro no Model de CreateAnexo:", error);
       throw error;
     } finally {
+      // Nota: Idealmente a conexão prisma não deve ser fechada com disconnect aqui
+      // se a sua aplicação gerencia um singleton, mas mantive para não alterar o seu comportamento.
       await prisma.$disconnect();
     }
   }

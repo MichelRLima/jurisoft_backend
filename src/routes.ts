@@ -35,6 +35,8 @@ import refreshTokenUserController from "./controllers/user/refreshTokenUserContr
 import createAtualizacaoProcessoController from "./controllers/processos/createAtualizacaoProcessoController";
 import editAtualiazacaoProcessoController from "./controllers/processos/editAtualizacaoProcessoController";
 import findNotificacoesController from "./controllers/notificacoes/findNotificacoesController";
+import readNotificacaoController from "./controllers/notificacoes/readNotificacaoController";
+import findAllNotificacoesController from "./controllers/notificacoes/findAllNotificacoesController";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const routes = Router();
@@ -164,6 +166,17 @@ routes.post(
   "/find/notificacoes",
   isAuthenticated,
   findNotificacoesController.handle,
+);
+routes.post(
+  "/find/allNotificacoes",
+  isAuthenticated,
+  findAllNotificacoesController.handle,
+);
+
+routes.post(
+  "/update/notificacao/read",
+  isAuthenticated,
+  readNotificacaoController.handle,
 );
 
 /* CLIENTE */

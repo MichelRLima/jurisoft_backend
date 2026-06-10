@@ -50,7 +50,7 @@ class RefreshTokenUser {
       const secret = process.env.JWT_SECRET || "sua_chave_secreta_aqui";
       const token = sign({}, secret, {
         subject: refreshTokenExists.usuarioId,
-        expiresIn: "10s", // Dura pouco tempo por segurança
+        expiresIn: "15m", // Dura pouco tempo por segurança
       });
 
       // 4. ROTATIVIDADE (Segurança Avançada)

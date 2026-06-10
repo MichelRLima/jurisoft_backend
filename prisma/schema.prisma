@@ -200,17 +200,23 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+enum TipoAtualizacaoProcesso {
+  PROCESSO_ALTERADO
+  ANEXOS
+}
+
 model AtualizacoesProcesso {
-  id         String         @id @default(uuid())
+  id         String                   @id @default(uuid())
   processoId String
   usuarioId  String
-  conteudo   String         @db.Text
+  conteudo   String                   @db.Text
   statusId   String
-  status     StatusProcesso @relation(fields: [statusId], references: [id])
-  usuario    Usuario        @relation(fields: [usuarioId], references: [id])
-  processo   Processos      @relation(fields: [processoId], references: [id], onDelete: Cascade)
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
+  tipo       TipoAtualizacaoProcesso?
+  status     StatusProcesso           @relation(fields: [statusId], references: [id])
+  usuario    Usuario                  @relation(fields: [usuarioId], references: [id])
+  processo   Processos                @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  createdAt  DateTime                 @default(now())
+  updatedAt  DateTime                 @updatedAt
 
   @@map("atualizacoesProcesso")
 }
@@ -218,6 +224,8 @@ model AtualizacoesProcesso {
 // Enum opcional para tipar as ações e facilitar no Frontend (mude os valores conforme seu sistema)
 enum TipoNotificacao {
   ATUALIZACAO_PROCESSO
+  NOVO_ANEXO
+  NOVO_PROCESSO
 }
 
 model Notificacao {

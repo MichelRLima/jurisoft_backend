@@ -15,6 +15,7 @@ class GetDetailsProcesso {
       if (!usuarioId) {
         throw new Error("Necessário informar o usuário");
       }
+      console.log(usuarioId);
 
       const detailsProcesso = await prisma.processos.findFirst({
         where: {
@@ -99,6 +100,7 @@ class GetDetailsProcesso {
             select: {
               id: true,
               conteudo: true,
+              tipo: true,
               createdAt: true,
               updatedAt: true,
               usuario: {
@@ -107,6 +109,7 @@ class GetDetailsProcesso {
                   email: true,
                   login: true,
                   permissao: true,
+
                   perfil: {
                     select: {
                       id: true,
@@ -220,10 +223,36 @@ class GetDetailsProcesso {
         }),
       );
 
-      io.to(`user_${usuarioCriacaoFormatado?.id}`).emit("nova_notificacao", {
-        titulo: "Atualização no Processo",
-        mensagem: "teste de envio de notificação",
+      const notificacoesNaoLidas = await prisma.rlNotificacaoUsuario.findMany({
+        where: {
+          usuarioId: usuarioId,
+          isRead: false, // Otimização: ignora as que já estão lidas
+          notificacao: {
+            processoId: processoId,
+          },
+        },
+        select: { id: true },
       });
+
+      const idsParaAtualizar = notificacoesNaoLidas.map((n) => n.id);
+      if (idsParaAtualizar.length > 0) {
+        await prisma.rlNotificacaoUsuario.updateMany({
+          where: {
+            id: { in: idsParaAtualizar },
+          },
+          data: {
+            isRead: true,
+          },
+        });
+
+        // Dispara o evento via Socket.io APENAS se houveram notificações atualizadas.
+        // Dica: Eu alterei aqui para emitir para o 'usuarioId' atual, pois faz mais
+        // sentido atualizar o "sininho" de notificações do usuário que acabou de abrir o processo.
+        io.to(`user_${usuarioId}`).emit("read_notificacoes", {
+          processoId: processoId,
+          mensagem: "Notificações lidas atualizadas",
+        });
+      }
 
       return {
         ...detailsProcesso,

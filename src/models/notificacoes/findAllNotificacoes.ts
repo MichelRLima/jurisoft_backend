@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || "";
 
-class FindNotificacoes {
+class FindAllNotificacoes {
   async execute(usuarioId: string) {
     try {
       if (!usuarioId) {
@@ -18,7 +18,6 @@ class FindNotificacoes {
         orderBy: {
           createdAt: "desc", // Garante que as novas apareçam no topo do Popover
         },
-        take: 30, // Limite seguro para não estourar a memória com dados antigos
         select: {
           id: true, // Retornamos o ID do vínculo (RlNotificacaoUsuario) para facilitar o "marcar como lido" no futuro
           isRead: true,
@@ -93,4 +92,4 @@ class FindNotificacoes {
   }
 }
 
-export default new FindNotificacoes();
+export default new FindAllNotificacoes();

@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import http from "http"; // Adicione isto
 import { Server } from "socket.io"; // Adicione isto
 import { initializeApp } from "./scripts/initialize";
+import { startCronJobs } from "./crons";
 const app = express();
 const server = http.createServer(app); // Criamos o servidor HTTP manualmente
 const PORT = process.env.PORT || 3333;
@@ -77,6 +78,7 @@ async function startServer() {
     // CORREÇÃO: Use 'server.listen' em vez de 'app.listen'
     server.listen(PORT, () => {
       console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
+      startCronJobs();
     });
   } catch (error) {
     console.error("❌ Falha ao iniciar o servidor:", error);

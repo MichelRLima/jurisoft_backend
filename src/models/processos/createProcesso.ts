@@ -3,6 +3,7 @@ import logger from "../../utils/logger/logger";
 import { uploadFile } from "../../services/storageService"; // Importe o serviço do R2 criado anteriormente
 import formatarProcesso from "../../utils/formatarProcesso/formatarProcesso";
 import { auditEmitter } from "../../services/auditService";
+import { io } from "../.."; // Importando o socket.io
 
 // Definimos o que o Model espera receber
 interface CreateProcessoRequest {
@@ -233,6 +234,66 @@ class CreateProcesso {
           ? `${R2_PUBLIC_URL}/${perfilCriacao.foto}`
           : "";
 
+        // ====================================================================
+        // LÓGICA DE NOTIFICAÇÃO DE NOVO PROCESSO
+        // ====================================================================
+        const nomeCompletoCriador = perfilCriacao
+          ? `${perfilCriacao.nome || ""} ${perfilCriacao.sobrenome || ""}`.trim()
+          : "Usuário do Sistema";
+
+        const destinatariosSet = new Set<string>();
+
+        // Agrupa os IDs enviados no payload de criação do processo
+        processo.responsaveis.forEach((resp: { id: string }) => {
+          if (resp.id) destinatariosSet.add(resp.id);
+        });
+
+        // Impede que o criador receba uma notificação se ele próprio estiver na lista
+        destinatariosSet.delete(usuarioId);
+        const destinatariosFinal = Array.from(destinatariosSet);
+
+        if (destinatariosFinal.length > 0) {
+          const notificacao = await tx.notificacao.create({
+            data: {
+              tipo: "NOVO_PROCESSO",
+              descricao: `adicionou você a um novo processo.`,
+              usuarioAtorId: usuarioId,
+              processoId: newProcesso.id,
+              destinatarios: {
+                create: destinatariosFinal.map((id) => ({
+                  usuarioId: id,
+                })),
+              },
+            },
+            include: {
+              destinatarios: true,
+            },
+          });
+
+          // Envia o payload via WebSocket de maneira individualizada por sala de usuário
+          notificacao.destinatarios.forEach((destinatario) => {
+            io.to(`user_${destinatario.usuarioId}`).emit(
+              "notificacao_atualizacao",
+              {
+                id: destinatario.id,
+                isRead: destinatario.isRead,
+                tipo: notificacao.tipo,
+                createdAt: notificacao.createdAt,
+                descricao: notificacao.descricao,
+                usuarioAtor: {
+                  nome: nomeCompletoCriador,
+                  foto: fotoCriacaoUrl || null,
+                },
+                processo: {
+                  numeroProcesso: newProcesso.numeroProcesso,
+                  id: newProcesso.id,
+                },
+              },
+            );
+          });
+        }
+        // ====================================================================
+
         return {
           ...findProcesso,
           usuarioCriacao: findProcesso.usuarioCriacao
@@ -275,6 +336,7 @@ class CreateProcesso {
           ),
         };
       });
+
       auditEmitter.emit("AUDIT_LOG", {
         entidade: "PROCESSO",
         entidadeId: result.id, // O ID do processo que acabou de ser criado

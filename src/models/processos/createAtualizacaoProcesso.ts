@@ -1,7 +1,8 @@
 import { PrismaClient } from "@prisma/client";
+import { io } from "../..";
 
 const prisma = new PrismaClient();
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || "";
 
 class CreateAtualizacaoProcesso {
   async execute(
@@ -27,10 +28,11 @@ class CreateAtualizacaoProcesso {
           throw new Error("Status inválido");
         }
 
-        // 2. Busca os envolvidos no processo (Criador + Responsáveis)
+        // 2. Busca os envolvidos no processo (Criador + Responsáveis) e o número do processo
         const processoDetails = await tx.processos.findUnique({
           where: { id: processoId },
           select: {
+            numeroProcesso: true, // Adicionado para enviar na notificação
             usuarioCriacaoId: true,
             usuariosResponsaveis: {
               select: { usuarioId: true },
@@ -61,7 +63,7 @@ class CreateAtualizacaoProcesso {
                 login: true,
                 permissao: {
                   select: {
-                    /* ... omitido p/ brevidade na leitura, mantenha o seu */ id: true,
+                    id: true,
                     codigoPermissao: true,
                     nomePermissao: true,
                     descricaoPermissao: true,
@@ -92,30 +94,27 @@ class CreateAtualizacaoProcesso {
         // 5. LÓGICA DE NOTIFICAÇÃO
         // ====================================================================
 
-        // Usamos um Set para garantir que não haverá IDs duplicados
         const destinatariosSet = new Set<string>();
 
-        // Adiciona o criador do processo
         if (processoDetails.usuarioCriacaoId) {
           destinatariosSet.add(processoDetails.usuarioCriacaoId);
         }
 
-        // Adiciona todos os responsáveis
         processoDetails.usuariosResponsaveis.forEach((resp) => {
           destinatariosSet.add(resp.usuarioId);
         });
 
-        // REGRA DE OURO: Remove o usuário que está fazendo a atualização agora
+        // Remove o usuário que está fazendo a atualização agora
         destinatariosSet.delete(usuarioId);
-
-        // Converte o Set de volta para Array
         const destinatariosFinal = Array.from(destinatariosSet);
 
         // Só cria a notificação se sobrar alguém na lista
         if (destinatariosFinal.length > 0) {
-          await tx.notificacao.create({
+          // Precisamos armazenar o resultado do create e dar include nos destinatários
+          // para pegar o ID da relação (RlNotificacaoUsuario) gerado para cada um
+          const notificacao = await tx.notificacao.create({
             data: {
-              tipo: "ATUALIZACAO_PROCESSO", // O Enum que configuramos no schema
+              tipo: "ATUALIZACAO_PROCESSO",
               descricao: `adicionou uma nova atualização e alterou o status para "${statusDetails.nomeStatus}".`,
               usuarioAtorId: usuarioId,
               processoId: processoId,
@@ -125,11 +124,46 @@ class CreateAtualizacaoProcesso {
                 })),
               },
             },
+            include: {
+              destinatarios: true, // Importante para pegar o ID de vínculo e status isRead
+            },
+          });
+
+          // Prepara os dados do ator (nome e foto) baseados no insert da atualização (passo 3)
+          const perfilAtor = atualizacao.usuario?.perfil;
+          const nomeCompleto = perfilAtor
+            ? `${perfilAtor.nome || ""} ${perfilAtor.sobrenome || ""}`.trim()
+            : "Usuário do Sistema";
+
+          const fotoUrl = perfilAtor?.foto
+            ? `${R2_PUBLIC_URL}/${perfilAtor.foto}`
+            : null;
+
+          // Emite o socket individualmente para cada destinatário
+          notificacao.destinatarios.forEach((destinatario) => {
+            io.to(`user_${destinatario.usuarioId}`).emit(
+              "notificacao_atualizacao",
+              {
+                id: destinatario.id, // Envia o ID da tabela pivô (RlNotificacaoUsuario)
+                isRead: destinatario.isRead,
+                tipo: notificacao.tipo,
+                createdAt: notificacao.createdAt,
+                descricao: notificacao.descricao,
+
+                usuarioAtor: {
+                  nome: nomeCompleto,
+                  foto: fotoUrl,
+                },
+                processo: {
+                  numeroProcesso: processoDetails.numeroProcesso,
+                  id: processoId,
+                },
+              },
+            );
           });
         }
         // ====================================================================
 
-        // Retorna o resultado da criação para fora da transação
         return atualizacao;
       });
 
@@ -139,7 +173,9 @@ class CreateAtualizacaoProcesso {
           ...resultado.usuario,
           perfil: {
             ...resultado.usuario?.perfil,
-            foto: `${R2_PUBLIC_URL}/${resultado.usuario?.perfil?.foto}`,
+            foto: resultado.usuario?.perfil?.foto
+              ? `${R2_PUBLIC_URL}/${resultado.usuario?.perfil?.foto}`
+              : null,
           },
         },
       };

@@ -13,7 +13,7 @@ class EditAtualizacaoProcesso {
       const atualizacaoExistente = await prisma.atualizacoesProcesso.findUnique(
         {
           where: { id },
-          select: { usuarioId: true },
+          select: { usuarioId: true, tipo: true },
         },
       );
 
@@ -25,6 +25,12 @@ class EditAtualizacaoProcesso {
       if (atualizacaoExistente.usuarioId !== usuarioId) {
         throw new Error(
           "Operação negada: Você só pode editar as suas próprias atualizações.",
+        );
+      }
+
+      if (atualizacaoExistente.tipo) {
+        throw new Error(
+          "Operação negada: Log de sistema não pode ser editado.",
         );
       }
 
