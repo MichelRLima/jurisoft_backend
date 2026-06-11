@@ -4,7 +4,7 @@ import { auditEmitter } from "../../services/auditService";
 const prisma = new PrismaClient();
 
 class DeleteUser {
-  async execute(userId: string, atorId: string) {
+  async execute(userId: string, status: Boolean, atorId: string) {
     try {
       const user = await prisma.usuario.findUnique({ where: { id: userId } });
       if (!user) throw new Error("Usuário não encontrado");
@@ -12,7 +12,7 @@ class DeleteUser {
       // Soft Delete: Em vez de prisma.usuario.delete, mudamos o status para 0
       const userInativado = await prisma.usuario.update({
         where: { id: userId },
-        data: { status: 0 },
+        data: { status: Number(status) },
       });
 
       // Disparar Log

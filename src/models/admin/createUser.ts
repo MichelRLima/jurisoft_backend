@@ -17,6 +17,7 @@ class CreateUser {
         const userAlreadyExists = await tx.usuario.findFirst({
           where: { OR: [{ login }, { email }] },
         });
+        console.log(userAlreadyExists);
 
         if (userAlreadyExists) {
           throw Object.assign(new Error("Usuário já existe!"), { status: 409 });

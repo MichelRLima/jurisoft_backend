@@ -7,9 +7,6 @@ class FindAllUser {
   async execute() {
     try {
       const users = await prisma.usuario.findMany({
-        where: {
-          status: 1,
-        },
         include: {
           perfil: true,
           permissao: true,
@@ -30,6 +27,7 @@ class FindAllUser {
           login: user?.login || "",
           email: user?.email || "",
           permissao: user?.permissao || "",
+          status: user?.status || false,
           perfil: {
             id: perfil?.id || "",
             foto: fotoUrlCompleta, // 2. Retorna a URL estática pronta

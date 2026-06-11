@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -101,7 +101,7 @@ model Clientes {
 model Processos {
   id                   String                 @id @default(uuid())
   numeroProcesso       String                 @unique
-  descricao            String                 @db.Text
+  descricao            String
   usuarioCriacaoId     String
   statusId             String
   tipoId               String
@@ -126,7 +126,7 @@ model RlUsuarioProcesso {
   usuarioId  String
   processoId String
 
-  status    Processos @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  processo  Processos @relation(fields: [processoId], references: [id], onDelete: Cascade)
   usuario   Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
@@ -165,7 +165,7 @@ model AnexosProcesso {
   id             String    @id @default(uuid())
   nome           String
   processoId     String
-  caminhoArquivo String    @db.VarChar(1024)
+  caminhoArquivo String
   processo       Processos @relation(fields: [processoId], references: [id], onDelete: Cascade)
 
   createdAt DateTime  @default(now())
@@ -209,7 +209,7 @@ model AtualizacoesProcesso {
   id         String                   @id @default(uuid())
   processoId String
   usuarioId  String
-  conteudo   String                   @db.Text
+  conteudo   String
   statusId   String
   tipo       TipoAtualizacaoProcesso?
   status     StatusProcesso           @relation(fields: [statusId], references: [id])
@@ -231,7 +231,7 @@ enum TipoNotificacao {
 model Notificacao {
   id        String          @id @default(uuid())
   tipo      TipoNotificacao
-  descricao String          @db.Text
+  descricao String
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 
