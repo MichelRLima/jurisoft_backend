@@ -113,6 +113,7 @@ model Processos {
   anexosProcesso       AnexosProcesso[]
   atualizacoes         AtualizacoesProcesso[]
   notificacoes         Notificacao[]
+  prazos               Prazos[]
   cliente              Clientes               @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   createdAt            DateTime               @default(now())
   updatedAt            DateTime?              @updatedAt
@@ -267,4 +268,32 @@ model RlNotificacaoUsuario {
   // Índice essencial para a query do "sininho" rodar rápido no banco
   @@index([usuarioId, isRead])
   @@map("rl_notificacao_usuario")
+}
+
+enum TipoPrazo {
+  PETICAO
+  AUDIENCIA
+  DILIGENCIA
+  REUNIAO
+  OUTRO
+}
+
+enum StatusPrazo {
+  PENDENTE
+  CONCLUIDO
+}
+
+model Prazos {
+  id         String      @id @default(uuid())
+  titulo     String
+  descricao  String
+  dataPrazo  DateTime
+  processoId String
+  status     StatusPrazo @default(PENDENTE)
+  tipo       TipoPrazo
+  processo   Processos   @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime?   @updatedAt
+
+  @@map("prazos")
 }

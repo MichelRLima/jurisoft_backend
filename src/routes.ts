@@ -37,6 +37,11 @@ import editAtualiazacaoProcessoController from "./controllers/processos/editAtua
 import findNotificacoesController from "./controllers/notificacoes/findNotificacoesController";
 import readNotificacaoController from "./controllers/notificacoes/readNotificacaoController";
 import findAllNotificacoesController from "./controllers/notificacoes/findAllNotificacoesController";
+import createPrazoController from "./controllers/prazos/createPrazoController";
+import findProcessosPrazosController from "./controllers/prazos/findProcessosPrazosController";
+import findAllPrazosController from "./controllers/prazos/findAllPrazosController";
+import deletePrazoController from "./controllers/prazos/deletePrazoController";
+import updatePrazoController from "./controllers/prazos/updatePrazoController";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const routes = Router();
@@ -178,6 +183,19 @@ routes.post(
   isAuthenticated,
   readNotificacaoController.handle,
 );
+
+/* PRAZOS */
+
+routes.post("/create/prazo", isAuthenticated, createPrazoController.handle);
+routes.post(
+  "/find/processos/prazos",
+  isAuthenticated,
+  findProcessosPrazosController.handle,
+);
+
+routes.post("/find/prazos", isAuthenticated, findAllPrazosController.handle);
+routes.post("/delete/prazo", isAuthenticated, deletePrazoController.handle);
+routes.post("/update/prazo", isAuthenticated, updatePrazoController.handle);
 
 /* CLIENTE */
 routes.post(

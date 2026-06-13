@@ -15,6 +15,19 @@ class CreateCliente {
         );
       }
 
+      const clienteExistente = await prisma.clientes.findFirst({
+        where: {
+          documento: {
+            equals: dataCliente.documento.trim(),
+            mode: "insensitive",
+          },
+        },
+      });
+
+      if (clienteExistente) {
+        throw new Error("Cliente já cadastrado no sistema.");
+      }
+
       const response = await prisma.clientes.create({
         data: {
           nome: dataCliente?.nome?.trim(),

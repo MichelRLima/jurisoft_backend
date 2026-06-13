@@ -1,5 +1,6 @@
 import { PrismaClient, AcaoLog } from "@prisma/client";
 import { auditEmitter } from "../../services/auditService";
+import cache from "../../cache";
 
 const prisma = new PrismaClient();
 
@@ -19,11 +20,13 @@ class DeleteUser {
       auditEmitter.emit("AUDIT_LOG", {
         entidade: "USUARIO",
         entidadeId: userId,
-        acao: AcaoLog.DELETE,
+        acao: AcaoLog.UPDATE,
         atorId,
         dadosAnteriores: { login: user.login, status: user.status },
-        dadosNovos: { status: 0 },
+        dadosNovos: { login: user.login, status: 0 },
       });
+
+      cache.del(`userActive_${userId}`);
 
       return { message: "Usuário inativado (soft delete) com sucesso!" };
     } catch (error) {

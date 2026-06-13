@@ -97,6 +97,8 @@ class GetProcessosCliente {
           _count: {
             select: {
               anexosProcesso: true,
+              prazos: true,
+              atualizacoes: true,
             },
           },
         },
@@ -149,6 +151,8 @@ class GetProcessosCliente {
         return {
           ...processo,
           anexos: processo?._count?.anexosProcesso || 0,
+          prazos: processo?._count?.prazos || 0,
+          atualizacoes: processo?._count?.atualizacoes || 0,
           usuarioCriacao: usuarioCriacaoFormatado,
           usuariosResponsaveis: usuariosResponsaveisFormatados,
         };
