@@ -11,7 +11,14 @@ class FindAllUserProcesso {
       }
       const users = await prisma.usuario.findMany({
         where: {
-          status: 1,
+          AND: [
+            { status: 1 },
+            {
+              id: {
+                not: usuarioId,
+              },
+            },
+          ],
         },
         include: {
           perfil: true,

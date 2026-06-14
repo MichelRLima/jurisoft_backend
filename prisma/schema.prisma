@@ -227,6 +227,8 @@ enum TipoNotificacao {
   ATUALIZACAO_PROCESSO
   NOVO_ANEXO
   NOVO_PROCESSO
+  NOVO_PRAZO
+  UPDATE_STATUS_PRAZO
 }
 
 model Notificacao {
