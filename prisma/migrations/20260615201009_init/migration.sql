@@ -2,10 +2,16 @@
 CREATE TYPE "AcaoLog" AS ENUM ('CREATE', 'UPDATE', 'DELETE');
 
 -- CreateEnum
-CREATE TYPE "TipoAtualizacaoProcesso" AS ENUM ('PROCESSO_ALTERADO', 'ANEXOS');
+CREATE TYPE "TipoAtualizacaoProcesso" AS ENUM ('PROCESSO_ALTERADO', 'ANEXOS', 'PRAZO');
 
 -- CreateEnum
-CREATE TYPE "TipoNotificacao" AS ENUM ('ATUALIZACAO_PROCESSO', 'NOVO_ANEXO', 'NOVO_PROCESSO');
+CREATE TYPE "TipoNotificacao" AS ENUM ('ATUALIZACAO_PROCESSO', 'NOVO_ANEXO', 'NOVO_PROCESSO', 'NOVO_PRAZO', 'UPDATE_STATUS_PRAZO', 'PRAZO_VENCENDO', 'PRAZO_VENCIDO');
+
+-- CreateEnum
+CREATE TYPE "TipoPrazo" AS ENUM ('PETICAO', 'AUDIENCIA', 'DILIGENCIA', 'REUNIAO', 'OUTRO');
+
+-- CreateEnum
+CREATE TYPE "StatusPrazo" AS ENUM ('PENDENTE', 'CONCLUIDO');
 
 -- CreateTable
 CREATE TABLE "usuario" (
@@ -138,6 +144,7 @@ CREATE TABLE "anexosProcesso" (
     "nome" TEXT NOT NULL,
     "processoId" TEXT NOT NULL,
     "caminhoArquivo" TEXT NOT NULL,
+    "tamanho" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3),
 
@@ -179,7 +186,7 @@ CREATE TABLE "notificacao" (
     "descricao" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "usuarioAtorId" TEXT NOT NULL,
+    "usuarioAtorId" TEXT,
     "processoId" TEXT,
 
     CONSTRAINT "notificacao_pkey" PRIMARY KEY ("id")
@@ -195,6 +202,21 @@ CREATE TABLE "rl_notificacao_usuario" (
     "notificacaoId" TEXT NOT NULL,
 
     CONSTRAINT "rl_notificacao_usuario_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "prazos" (
+    "id" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "descricao" TEXT NOT NULL,
+    "dataPrazo" TIMESTAMP(3) NOT NULL,
+    "processoId" TEXT NOT NULL,
+    "status" "StatusPrazo" NOT NULL DEFAULT 'PENDENTE',
+    "tipo" "TipoPrazo" NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3),
+
+    CONSTRAINT "prazos_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -273,7 +295,7 @@ ALTER TABLE "atualizacoesProcesso" ADD CONSTRAINT "atualizacoesProcesso_usuarioI
 ALTER TABLE "atualizacoesProcesso" ADD CONSTRAINT "atualizacoesProcesso_processoId_fkey" FOREIGN KEY ("processoId") REFERENCES "processos"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "notificacao" ADD CONSTRAINT "notificacao_usuarioAtorId_fkey" FOREIGN KEY ("usuarioAtorId") REFERENCES "usuario"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "notificacao" ADD CONSTRAINT "notificacao_usuarioAtorId_fkey" FOREIGN KEY ("usuarioAtorId") REFERENCES "usuario"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "notificacao" ADD CONSTRAINT "notificacao_processoId_fkey" FOREIGN KEY ("processoId") REFERENCES "processos"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -283,3 +305,6 @@ ALTER TABLE "rl_notificacao_usuario" ADD CONSTRAINT "rl_notificacao_usuario_usua
 
 -- AddForeignKey
 ALTER TABLE "rl_notificacao_usuario" ADD CONSTRAINT "rl_notificacao_usuario_notificacaoId_fkey" FOREIGN KEY ("notificacaoId") REFERENCES "notificacao"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "prazos" ADD CONSTRAINT "prazos_processoId_fkey" FOREIGN KEY ("processoId") REFERENCES "processos"("id") ON DELETE CASCADE ON UPDATE CASCADE;

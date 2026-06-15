@@ -44,6 +44,10 @@ import deletePrazoController from "./controllers/prazos/deletePrazoController";
 import updatePrazoController from "./controllers/prazos/updatePrazoController";
 import updateStatusPrazoController from "./controllers/prazos/updateStatusPrazoController";
 import findPrazosClienteController from "./controllers/prazos/findPrazosClienteController";
+import findAnexosController from "./controllers/processos/findAnexosController";
+import findAtualizacoesController from "./controllers/processos/findAtualizacoesController";
+import findPrazosController from "./controllers/processos/findPrazosController";
+import findArmazenamentoController from "./controllers/admin/findArmazenamentoController";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const routes = Router();
@@ -68,7 +72,11 @@ routes.post(
   isAuthenticated,
   updatePasswordController.handle,
 );
-
+routes.get(
+  "/find/armazenamento",
+  isAuthenticated,
+  findArmazenamentoController.handle,
+);
 routes.post(
   "/create/processo",
   isAuthenticated,
@@ -95,6 +103,17 @@ routes.post(
   createAnexoController.handle,
 );
 
+routes.post("/find/anexos", isAuthenticated, findAnexosController.handle);
+routes.post(
+  "/find/atualizacoes",
+  isAuthenticated,
+  findAtualizacoesController.handle,
+);
+routes.post(
+  "/find/processo/prazos",
+  isAuthenticated,
+  findPrazosController.handle,
+);
 routes.post(
   "/find/processos",
   isAuthenticated,

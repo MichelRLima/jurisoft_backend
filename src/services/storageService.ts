@@ -58,7 +58,7 @@ export async function getSecureUrl(fileName: string) {
     Key: fileName,
   });
 
-  const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+  const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 900 });
   return signedUrl;
 }
 

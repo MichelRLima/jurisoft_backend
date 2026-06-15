@@ -53,6 +53,10 @@ interface IFindProcessoResult {
 
 const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
+const limitePlanoGb = process.env.LIMITE_PLANO_GB;
+const limitePlano = limitePlanoGb
+  ? Number(limitePlanoGb) * 1024 * 1024 * 1024
+  : 2147483648; // 2GB se nao tiver no env
 
 class CreateProcesso {
   async execute({ processo, files = [], usuarioId }: CreateProcessoRequest) {
@@ -72,7 +76,7 @@ class CreateProcesso {
       });
 
       if (!userCreate || !userCreate?.email) {
-        throw new Error("Usuário nao encontrado ou sem email");
+        throw new Error("Usuário não encontrado ou sem email");
       }
 
       const cliente = await prisma.clientes.findUnique({
@@ -90,11 +94,49 @@ class CreateProcesso {
       });
 
       if (firstProcesso) {
-        // Aproveitei para tipar o erro para que o Controller possa devolver um 409 Conflict
         throw Object.assign(new Error("Processo já cadastrado"), {
           status: 409,
         });
       }
+
+      // =========================================================================
+      // FASE 0: VERIFICAÇÃO DE LIMITE DE ARMAZENAMENTO ANTES DO UPLOAD
+      // =========================================================================
+      if (files?.length > 0) {
+        // 1. Calcula o tamanho em bytes dos arquivos que estão chegando na requisição
+        const tamanhoNovosArquivos = files?.reduce(
+          (acc, file) => acc + file?.size,
+          0,
+        );
+
+        // 2. Busca quanto espaço esse cliente já utilizou somando todos os anexos de todos os processos dele
+        const agregacao = await prisma.anexosProcesso.aggregate({
+          _sum: {
+            tamanho: true,
+          },
+          where: {
+            processo: {
+              clienteId: cliente.id,
+            },
+          },
+        });
+
+        const espacoUtilizado = agregacao?._sum?.tamanho || 0;
+
+        // 3. Verifica se a soma do atual + novo ultrapassa o limite estipulado
+        if (espacoUtilizado + tamanhoNovosArquivos > limitePlano) {
+          logger.warn(
+            `Upload bloqueado para o cliente ${cliente.id}. Limite excedido.`,
+          );
+          throw Object.assign(
+            new Error("Limite de armazenamento do plano atingido."),
+            {
+              status: 403, // 403 Forbidden é ideal para bloqueios de permissão/plano
+            },
+          );
+        }
+      }
+
       // =========================================================================
       // FASE 1: COMUNICAÇÃO EXTERNA (CLOUDFLARE R2) - FORA DA TRANSAÇÃO
       // =========================================================================
@@ -102,6 +144,7 @@ class CreateProcesso {
       const arquivosParaSalvar: {
         nome: string;
         caminhoArquivo: string;
+        tamanho: number;
       }[] = [];
 
       if (files.length > 0) {
@@ -126,6 +169,7 @@ class CreateProcesso {
             arquivosParaSalvar.push({
               nome: file.originalname,
               caminhoArquivo: caminhoNoStorage,
+              tamanho: file.size,
             });
           }),
         );
@@ -167,6 +211,7 @@ class CreateProcesso {
             data: arquivosParaSalvar?.map((arquivo) => ({
               nome: arquivo.nome,
               caminhoArquivo: arquivo.caminhoArquivo,
+              tamanho: arquivo.tamanho,
               processoId: newProcesso.id,
             })),
           });
@@ -225,7 +270,7 @@ class CreateProcesso {
           throw new Error("Processo não encontrado após criação");
         }
 
-        // Tratamento seguro do perfil do criador (Lida se vier como Array ou Objeto)
+        // Tratamento seguro do perfil do criador
         const pCriacaoRaw = findProcesso.usuarioCriacao?.perfil;
         const perfilCriacao = Array.isArray(pCriacaoRaw)
           ? pCriacaoRaw[0]
@@ -243,12 +288,10 @@ class CreateProcesso {
 
         const destinatariosSet = new Set<string>();
 
-        // Agrupa os IDs enviados no payload de criação do processo
         processo.responsaveis.forEach((resp: { id: string }) => {
           if (resp.id) destinatariosSet.add(resp.id);
         });
 
-        // Impede que o criador receba uma notificação se ele próprio estiver na lista
         destinatariosSet.delete(usuarioId);
         const destinatariosFinal = Array.from(destinatariosSet);
 
@@ -270,7 +313,6 @@ class CreateProcesso {
             },
           });
 
-          // Envia o payload via WebSocket de maneira individualizada por sala de usuário
           notificacao.destinatarios.forEach((destinatario) => {
             io.to(`user_${destinatario.usuarioId}`).emit(
               "notificacao_atualizacao",
@@ -304,7 +346,7 @@ class CreateProcesso {
                       id: perfilCriacao.id,
                       nome: perfilCriacao.nome,
                       sobrenome: perfilCriacao.sobrenome,
-                      foto: fotoCriacaoUrl, // URL estática perfeita e sem o objeto "0"
+                      foto: fotoCriacaoUrl,
                     }
                   : null,
               }
@@ -312,7 +354,6 @@ class CreateProcesso {
           anexos: findProcesso._count?.anexosProcesso || 0,
           usuariosResponsaveis: findProcesso.usuariosResponsaveis?.map(
             (responsavel: any) => {
-              // Tratamento seguro do perfil dos responsáveis
               const pRespRaw = responsavel.usuario?.perfil;
               const perfilResp = Array.isArray(pRespRaw)
                 ? pRespRaw[0]
@@ -328,7 +369,7 @@ class CreateProcesso {
                       id: perfilResp.id,
                       nome: perfilResp.nome,
                       sobrenome: perfilResp.sobrenome,
-                      foto: fotoRespUrl, // URL estática perfeita e sem o objeto "0"
+                      foto: fotoRespUrl,
                     }
                   : null,
               };
@@ -339,10 +380,10 @@ class CreateProcesso {
 
       auditEmitter.emit("AUDIT_LOG", {
         entidade: "PROCESSO",
-        entidadeId: result.id, // O ID do processo que acabou de ser criado
+        entidadeId: result.id,
         acao: AcaoLog.CREATE,
-        atorId: usuarioId, // O usuário que fez a requisição
-        dadosAnteriores: null, // Como é criação, não havia nada antes
+        atorId: usuarioId,
+        dadosAnteriores: null,
         dadosNovos: {
           numeroProcesso: result.numeroProcesso,
           descricao: result.descricao,

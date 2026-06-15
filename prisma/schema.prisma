@@ -167,6 +167,7 @@ model AnexosProcesso {
   nome           String
   processoId     String
   caminhoArquivo String
+  tamanho        Int
   processo       Processos @relation(fields: [processoId], references: [id], onDelete: Cascade)
 
   createdAt DateTime  @default(now())
