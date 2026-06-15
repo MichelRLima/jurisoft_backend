@@ -2,6 +2,7 @@ import { PrismaClient, TipoPrazo, AcaoLog } from "@prisma/client";
 import logger from "../../utils/logger/logger";
 import { auditEmitter } from "../../services/auditService";
 import { io } from "../.."; // Ajuste o caminho conforme sua estrutura
+import dayjs from "dayjs";
 
 const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || "";
@@ -32,6 +33,9 @@ class CreatePrazo {
                 cliente: true,
                 usuariosResponsaveis: {
                   select: { usuarioId: true },
+                },
+                status: {
+                  select: { id: true },
                 },
               },
             },
@@ -140,6 +144,18 @@ class CreatePrazo {
           });
         }
         // ====================================================================
+
+        const mensagem = `Adicionado novo prazo: <strong>${titulo}</strong> com vencimento em ${dayjs(response.dataPrazo).format("DD/MM/YYYY")}`;
+
+        await prisma.atualizacoesProcesso.create({
+          data: {
+            usuarioId,
+            processoId,
+            conteudo: mensagem,
+            statusId: response.processo.status?.id,
+            tipo: "PRAZO",
+          },
+        });
 
         return {
           id: response.id,

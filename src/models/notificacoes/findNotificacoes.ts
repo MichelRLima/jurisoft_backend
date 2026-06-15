@@ -58,8 +58,8 @@ class FindNotificacoes {
 
         // Trata o nome (juntando nome + sobrenome)
         const nomeCompleto = perfilAtor
-          ? `${perfilAtor.nome || ""} ${perfilAtor.sobrenome || ""}`.trim()
-          : "Usuário do Sistema";
+          ? `${perfilAtor.nome || ""} ${perfilAtor.sobrenome || ""}`?.trim()
+          : null;
 
         // Monta o link final da foto concatenando com o seu R2 Cloudflare
         const fotoUrl = perfilAtor?.foto

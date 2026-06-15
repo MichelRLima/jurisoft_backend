@@ -43,6 +43,7 @@ import findAllPrazosController from "./controllers/prazos/findAllPrazosControlle
 import deletePrazoController from "./controllers/prazos/deletePrazoController";
 import updatePrazoController from "./controllers/prazos/updatePrazoController";
 import updateStatusPrazoController from "./controllers/prazos/updateStatusPrazoController";
+import findPrazosClienteController from "./controllers/prazos/findPrazosClienteController";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const routes = Router();
@@ -198,6 +199,12 @@ routes.post(
   "/update/status/prazo",
   isAuthenticated,
   updateStatusPrazoController.handle,
+);
+
+routes.post(
+  "/find/prazos/cliente",
+  isAuthenticated,
+  findPrazosClienteController.handle,
 );
 
 routes.post("/find/prazos", isAuthenticated, findAllPrazosController.handle);

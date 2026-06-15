@@ -87,8 +87,20 @@ class GetAllPrcessos {
           _count: {
             select: {
               anexosProcesso: true,
-              atualizacoes: true,
-              prazos: true,
+              atualizacoes: {
+                where: {
+                  tipo: {
+                    equals: null,
+                  },
+                },
+              },
+              prazos: {
+                where: {
+                  status: {
+                    not: "CONCLUIDO",
+                  },
+                },
+              },
             },
           },
         },

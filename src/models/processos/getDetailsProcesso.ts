@@ -96,6 +96,20 @@ class GetDetailsProcesso {
               estado: true,
             },
           },
+          // ADICIONADO: Busca todos os prazos atrelados a este processo
+          prazos: {
+            select: {
+              id: true,
+              titulo: true,
+              dataPrazo: true,
+              tipo: true,
+              descricao: true,
+              status: true,
+            },
+            orderBy: {
+              dataPrazo: "asc", // Ordena do mais próximo para o mais distante
+            },
+          },
           atualizacoes: {
             select: {
               id: true,
@@ -109,7 +123,6 @@ class GetDetailsProcesso {
                   email: true,
                   login: true,
                   permissao: true,
-
                   perfil: {
                     select: {
                       id: true,
@@ -204,6 +217,20 @@ class GetDetailsProcesso {
       );
 
       // =========================================================================
+      // ADICIONADO: FORMATAÇÃO DOS PRAZOS DESTE PROCESSO
+      // =========================================================================
+      const prazosFormatados = detailsProcesso.prazos.map((prazo) => ({
+        id: prazo.id,
+        title: prazo.titulo,
+        caseNumber: detailsProcesso.numeroProcesso,
+        clientName: detailsProcesso.cliente?.nome || "",
+        deadlineDate: prazo.dataPrazo.toISOString(),
+        taskType: prazo.tipo,
+        description: prazo.descricao,
+        status: prazo.status,
+      }));
+
+      // =========================================================================
       // 2. GERAÇÃO DE LINKS SEGUROS PARA OS ANEXOS (Bucket Privado - Assíncrono)
       // =========================================================================
 
@@ -246,20 +273,22 @@ class GetDetailsProcesso {
         });
 
         // Dispara o evento via Socket.io APENAS se houveram notificações atualizadas.
-        // Dica: Eu alterei aqui para emitir para o 'usuarioId' atual, pois faz mais
-        // sentido atualizar o "sininho" de notificações do usuário que acabou de abrir o processo.
         io.to(`user_${usuarioId}`).emit("read_notificacoes", {
           processoId: processoId,
           mensagem: "Notificações lidas atualizadas",
         });
       }
 
+      // Remove a propriedade 'prazos' bruta do Prisma para não duplicar dados
+      const { prazos, ...restOfProcesso } = detailsProcesso;
+
       return {
-        ...detailsProcesso,
+        ...restOfProcesso,
         usuarioCriacao: usuarioCriacaoFormatado,
         usuariosResponsaveis: usuariosResponsaveisFormatados,
-        atualizacoes: atualizacoesFormatadas, // Array formatado adicionado ao retorno
+        atualizacoes: atualizacoesFormatadas,
         anexosProcesso: anexosComLinksTemporarios,
+        prazos: prazosFormatados, // Retorna os prazos na formatação esperada pelo frontend
       };
     } catch (error) {
       logger.error("Erro ao buscar detalhes do processo:", error);

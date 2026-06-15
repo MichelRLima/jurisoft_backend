@@ -204,6 +204,7 @@ model AuditLog {
 enum TipoAtualizacaoProcesso {
   PROCESSO_ALTERADO
   ANEXOS
+  PRAZO
 }
 
 model AtualizacoesProcesso {
@@ -229,6 +230,8 @@ enum TipoNotificacao {
   NOVO_PROCESSO
   NOVO_PRAZO
   UPDATE_STATUS_PRAZO
+  PRAZO_VENCENDO
+  PRAZO_VENCIDO
 }
 
 model Notificacao {
@@ -239,8 +242,8 @@ model Notificacao {
   updatedAt DateTime        @updatedAt
 
   // Quem realizou a ação (O Ator)
-  usuarioAtorId String
-  usuarioAtor   Usuario @relation(fields: [usuarioAtorId], references: [id])
+  usuarioAtorId String?
+  usuarioAtor   Usuario? @relation(fields: [usuarioAtorId], references: [id])
 
   // O Processo relacionado à notificação (Opcional, pois pode haver notificações gerais)
   processoId String?

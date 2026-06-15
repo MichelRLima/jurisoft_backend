@@ -2,6 +2,7 @@ import { PrismaClient, StatusPrazo, AcaoLog } from "@prisma/client";
 import logger from "../../utils/logger/logger";
 import { auditEmitter } from "../../services/auditService";
 import { io } from "../.."; // Ajuste o caminho do socket conforme sua estrutura
+import dayjs from "dayjs";
 
 const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || "";
@@ -24,6 +25,11 @@ class UpdateStatusPrazo {
                 numeroProcesso: true,
                 usuarioCriacaoId: true,
                 usuariosResponsaveis: { select: { usuarioId: true } },
+                status: {
+                  select: {
+                    id: true,
+                  },
+                },
               },
             },
           },
@@ -122,6 +128,18 @@ class UpdateStatusPrazo {
               );
             });
           }
+
+          const mensagem = `Prazo concluído: <strong>${prazoAnterior.titulo}</strong> concluído em ${dayjs().format("DD/MM/YYYY")}`;
+
+          await prisma.atualizacoesProcesso.create({
+            data: {
+              usuarioId,
+              processoId: prazoAnterior.processoId,
+              conteudo: mensagem,
+              statusId: prazoAnterior.processo?.status?.id,
+              tipo: "PRAZO",
+            },
+          });
         }
 
         return prazoAtualizado;
