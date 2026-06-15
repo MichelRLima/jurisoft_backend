@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 export const iniciarJobLimpezaNotificacoes = () => {
   cronitorClient.schedule!(
     "LimpezaDeNotificacoesLidas",
-    "0 3 * * *",
+    "0 0 * * *",
     async () => {
       logger.info("⏳ Iniciando rotina de limpeza de notificações antigas...");
 
