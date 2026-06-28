@@ -1,8 +1,7 @@
-import { PrismaClient, AcaoLog, TipoPrazo } from "@prisma/client";
+import { AcaoLog, TipoPrazo } from "@prisma/client";
 import logger from "../../utils/logger/logger";
 import { auditEmitter } from "../../services/auditService";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../shared/database/prisma";
 
 class UpdatePrazo {
   async execute(

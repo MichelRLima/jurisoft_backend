@@ -1,10 +1,10 @@
-import { PrismaClient, TipoPrazo, AcaoLog } from "@prisma/client";
+import { TipoPrazo, AcaoLog } from "@prisma/client";
 import logger from "../../utils/logger/logger";
 import { auditEmitter } from "../../services/auditService";
 import { io } from "../.."; // Ajuste o caminho conforme sua estrutura
 import dayjs from "dayjs";
+import { prisma } from "../../shared/database/prisma";
 
-const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || "";
 
 class CreatePrazo {

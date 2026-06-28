@@ -1,7 +1,8 @@
-import { AcaoLog, PrismaClient } from "@prisma/client";
+import { AcaoLog, EsferaProcesso } from "@prisma/client";
+import { prisma } from "../../shared/database/prisma";
 import logger from "../../utils/logger/logger";
 import { uploadFile } from "../../services/storageService"; // Importe o serviço do R2 criado anteriormente
-import formatarProcesso from "../../utils/formatarProcesso/formatarProcesso";
+
 import { auditEmitter } from "../../services/auditService";
 import { io } from "../.."; // Importando o socket.io
 
@@ -17,6 +18,7 @@ interface IFindProcessoResult {
   id: string;
   numeroProcesso: string;
   descricao: string;
+  esfera: EsferaProcesso;
   usuarioCriacao: {
     id: string;
     email: string;
@@ -51,7 +53,6 @@ interface IFindProcessoResult {
   };
 }
 
-const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
 const limitePlanoGb = process.env.LIMITE_PLANO_GB;
 const limitePlano = limitePlanoGb
@@ -66,7 +67,8 @@ class CreateProcesso {
         !processo?.numeroProcesso ||
         !processo?.status ||
         !processo?.descricao ||
-        !processo?.tipo
+        !processo?.tipo ||
+        !processo?.esfera
       ) {
         throw new Error("Dados insuficientes para abertura de processo");
       }
@@ -102,6 +104,7 @@ class CreateProcesso {
       // =========================================================================
       // FASE 0: VERIFICAÇÃO DE LIMITE DE ARMAZENAMENTO ANTES DO UPLOAD
       // =========================================================================
+
       if (files?.length > 0) {
         // 1. Calcula o tamanho em bytes dos arquivos que estão chegando na requisição
         const tamanhoNovosArquivos = files?.reduce(
@@ -181,6 +184,7 @@ class CreateProcesso {
       // =========================================================================
 
       logger.debug(`Criando processo no banco de dados`);
+      console.log(processo.responsaveis);
 
       const result = await prisma.$transaction(async (tx) => {
         // 1. Cria o processo
@@ -188,12 +192,13 @@ class CreateProcesso {
           data: {
             numeroProcesso: processo.numeroProcesso,
             descricao: processo.descricao,
+            esfera: processo.esfera,
             usuarioCriacao: { connect: { id: userCreate.id } },
             status: { connect: { codigoStatus: processo.status } },
             tipo: { connect: { codigoTipo: processo.tipo } },
             cliente: { connect: { id: cliente.id } },
             usuariosResponsaveis: {
-              create: processo.responsaveis.map(
+              create: processo?.responsaveis?.map(
                 (responsavel: { id: string }) => ({
                   usuario: { connect: { id: responsavel.id } },
                 }),
@@ -228,6 +233,7 @@ class CreateProcesso {
             id: true,
             numeroProcesso: true,
             descricao: true,
+            esfera: true,
             usuarioCriacao: {
               select: {
                 id: true,
@@ -288,7 +294,7 @@ class CreateProcesso {
 
         const destinatariosSet = new Set<string>();
 
-        processo.responsaveis.forEach((resp: { id: string }) => {
+        processo?.responsaveis?.forEach((resp: { id: string }) => {
           if (resp.id) destinatariosSet.add(resp.id);
         });
 
@@ -397,8 +403,6 @@ class CreateProcesso {
     } catch (error) {
       logger.error("Erro no Model de CreateProcesso:", error);
       throw error;
-    } finally {
-      await prisma.$disconnect();
     }
   }
 }

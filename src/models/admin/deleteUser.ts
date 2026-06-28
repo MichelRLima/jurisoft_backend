@@ -1,8 +1,7 @@
-import { PrismaClient, AcaoLog } from "@prisma/client";
+import { AcaoLog } from "@prisma/client";
 import { auditEmitter } from "../../services/auditService";
 import cache from "../../cache";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../shared/database/prisma";
 
 class DeleteUser {
   async execute(userId: string, status: Boolean, atorId: string) {

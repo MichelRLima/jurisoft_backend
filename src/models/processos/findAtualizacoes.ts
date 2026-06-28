@@ -1,7 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-import logger from "../../utils/logger/logger";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../shared/database/prisma";
 
 class FindAtualizacoes {
   async execute(processoId: string) {

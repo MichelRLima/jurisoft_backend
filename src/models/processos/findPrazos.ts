@@ -1,10 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-import logger from "../../utils/logger/logger";
-import { getSecureUrl } from "../../services/storageService";
-import { io } from "../..";
-
-const prisma = new PrismaClient();
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
+import { prisma } from "../../shared/database/prisma";
 
 class FindPrazos {
   async execute(processoId: string) {

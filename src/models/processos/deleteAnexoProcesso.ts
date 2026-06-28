@@ -1,8 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../shared/database/prisma";
 import logger from "../../utils/logger/logger";
 import { deleteFile } from "../../services/storageService"; // Importando o serviço do Cloudflare R2
 
-const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || "";
 
 class DeleteAnexoProcesso {
@@ -135,8 +134,6 @@ class DeleteAnexoProcesso {
     } catch (error) {
       logger.error("Erro no Model de DeleteAnexoProcesso:", error);
       throw error;
-    } finally {
-      await prisma.$disconnect();
     }
   }
 }

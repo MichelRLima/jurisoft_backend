@@ -1,9 +1,5 @@
-import { PrismaClient } from "@prisma/client";
-
 import logger from "../../utils/logger/logger";
-
-// Mantenha a instância do cliente fora da classe para ser reutilizada (Singleton)
-const prisma = new PrismaClient();
+import { prisma } from "../../shared/database/prisma";
 
 class GetDetailsCliente {
   async execute(clienteId: string) {
@@ -26,8 +22,6 @@ class GetDetailsCliente {
       console.error(error);
 
       throw error;
-    } finally {
-      await prisma.$disconnect();
     }
   }
 }

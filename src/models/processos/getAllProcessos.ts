@@ -1,6 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../shared/database/prisma";
 
-const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
 
 class GetAllPrcessos {
@@ -29,6 +28,7 @@ class GetAllPrcessos {
           numeroProcesso: true,
           descricao: true,
           createdAt: true,
+          esfera: true,
           usuarioCriacao: {
             select: {
               id: true,
@@ -164,8 +164,6 @@ class GetAllPrcessos {
     } catch (error) {
       console.error(error);
       throw error;
-    } finally {
-      await prisma.$disconnect();
     }
   }
 }

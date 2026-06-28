@@ -1,12 +1,11 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../shared/database/prisma";
 
-const client = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
 
 class CheckPerfil {
   async execute(usuarioId: string) {
     try {
-      const perfil = await client.perfil.findFirst({
+      const perfil = await prisma.perfil.findFirst({
         where: { usuarioId },
       });
 
@@ -30,7 +29,6 @@ class CheckPerfil {
       console.error("Erro no CheckPerfil:", error);
       throw error; // Importante para o Controller conseguir capturar e retornar status 500
     } finally {
-      await client.$disconnect();
     }
   }
 }

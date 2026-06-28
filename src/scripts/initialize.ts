@@ -1,7 +1,5 @@
-import { PrismaClient } from "@prisma/client";
 import createFirstUser from "../models/admin/createFirstUser";
-
-const prisma = new PrismaClient();
+import { prisma } from "../shared/database/prisma";
 
 const initializeStatusProcesso = async () => {
   try {
@@ -22,8 +20,13 @@ const initializeStatusProcesso = async () => {
         status: true,
       },
       {
-        nomeStatus: "Documentação Pendente",
-        codigoStatus: "documentacao_pendente",
+        nomeStatus: "Deferido",
+        codigoStatus: "deferido",
+        status: true,
+      },
+      {
+        nomeStatus: "Indeferido",
+        codigoStatus: "indeferido",
         status: true,
       },
     ];
@@ -45,7 +48,7 @@ const initializeStatusProcesso = async () => {
         status: true,
       },
       {
-        nomeTipo: "Administrativo",
+        nomeTipo: "D. Administrativo",
         codigoTipo: "administrativo",
         status: true,
       },

@@ -1,9 +1,7 @@
 import { PrismaClient } from "@prisma/client";
-import logger from "../../utils/logger/logger";
-import { getSecureUrl } from "../../services/storageService"; // Importando o serviço do R2
-import { io } from "../.."; // Importando o socket.io
 
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || "";
+import { getSecureUrl } from "../../services/storageService"; // Importando o serviço do R2
+
 const prisma = new PrismaClient();
 
 class FindAnexos {

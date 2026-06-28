@@ -1,37 +1,14 @@
 import bcrypt from "bcryptjs";
-import { PrismaClient } from "@prisma/client";
-
+// Importe o prismaBase para fazer a transação pura
+import { prisma, prismaBase } from "../../shared/database/prisma";
 import generateTokenProvider from "../../provider/generateTokenProvider";
 import generateRefreshToken from "../../provider/generateRefreshToken";
-/* import { logLoginCliente } from "./logs/logLoginCliente"; */
-/* import cache from "../../../cache";
- */
-const client = new PrismaClient();
-
-/* // Interface para o contador de falhas no cache
-interface IFailureCounter {
-  nTentativas: number;
-  lastTry: number;
-}
- */
-// Interface para os dados do dispositivo (ajuste conforme sua biblioteca de detecção)
-interface IDeviceData {
-  browser: { name: string };
-  os: { name: string };
-}
 
 class LoginUser {
-  async execute(
-    login: string,
-    senha: string,
-    /*   ipAddress: string, 
-    deviceData: IDeviceData */
-  ) {
+  async execute(login: string, senha: string) {
     try {
-      const tempoInicial = new Date().getTime();
-
-      // Checa se o usuário existe
-      const userAlreadyExists = await client.usuario.findUnique({
+      // Pode manter o prisma normal aqui, pois a tabela usuário não tem extensão
+      const userAlreadyExists = await prisma.usuario.findUnique({
         where: { login: login },
       });
 
@@ -41,72 +18,29 @@ class LoginUser {
         });
       }
 
-      /*     // Verifica tentativas de login no cache
-      const blockLogin = cache.get(`${userAlreadyExists.id}`) as IFailureCounter | undefined;
- */
-      /*   if (blockLogin) {
-        let timeDiff = (tempoInicial - blockLogin.lastTry) / 1000;
-        timeDiff /= 60;
-        timeDiff = Math.abs(Math.round(timeDiff));
-
-        if (
-          blockLogin.nTentativas >= 10 &&
-          timeDiff < 5 &&
-          blockLogin.nTentativas % 5 === 0
-        ) {
-          await logLoginCliente.execute(
-            userAlreadyExists.id,
-            ipAddress,
-            0, // Status falha
-            deviceData.browser.name,
-            deviceData.os.name
-          );
-
-          const errorInfo = {
-            error: "Too many requests",
-            waitingTime: 5 - timeDiff,
-          };
-          
-          throw Object.assign(new Error(JSON.stringify(errorInfo)), {
-            status: 429,
-          });
-        }
-      }
- */
-      // Verificar senha
       const passwordMatch = await bcrypt.compare(
         senha,
-        userAlreadyExists.senha ?? "", // Se for null, vira ""
+        userAlreadyExists.senha ?? "",
       );
 
       if (!passwordMatch) {
-        /* 
-        await logLoginCliente.execute(
-          userAlreadyExists.id,
-          ipAddress,
-          0,
-          deviceData.browser.name,
-          deviceData.os.name
-        );
- */
         throw Object.assign(new Error("User or password incorrect!"), {
           status: 401,
         });
       }
 
-      // Transaction para garantir consistência
-      const response = await client.$transaction(async (tx) => {
+      // 👇 MUDE AQUI: Use prismaBase para gerar um `tx` do tipo Prisma.TransactionClient puro
+      const response = await prismaBase.$transaction(async (tx) => {
         const token = await generateTokenProvider.execute(userAlreadyExists.id);
 
-        // Deleta usando o tx da transação (Correto)
         await tx.refreshToken.deleteMany({
           where: { usuarioId: userAlreadyExists.id },
         });
 
-        // 💡 AGORA REPASSA O TX AQUI PARA O CONTEXTO SER O MESMO!
+        // Agora o TypeScript aceita perfeitamente o repasse do tx
         const refreshToken = await generateRefreshToken.execute(
           userAlreadyExists.id,
-          tx, // <-- A mágica acontece aqui
+          tx,
         );
 
         return { token, refreshToken };
@@ -117,9 +51,8 @@ class LoginUser {
       console.error(error);
       error.path = "src/models/internal/auth/authUser.ts";
       throw error;
-    } finally {
-      await client.$disconnect();
     }
   }
 }
+
 export default new LoginUser();

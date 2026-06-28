@@ -8,8 +8,7 @@ class CreateAnexoController {
     let processoId = req.body.processoId;
     const usuarioId = req.user?.sub;
     if (!usuarioId) {
-      res.status(401).json({ error: "Usuário não identificado." });
-      return;
+      throw new Error("Usuário não identificado.");
     }
     try {
       processoId = JSON.parse(processoId);

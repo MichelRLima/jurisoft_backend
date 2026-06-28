@@ -1,10 +1,9 @@
-import { PrismaClient } from "@prisma/client";
 import logger from "../../utils/logger/logger";
 import { uploadFile, getSecureUrl } from "../../services/storageService";
 import { io } from "../..";
+import { prisma } from "../../shared/database/prisma";
 
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || "";
-const prisma = new PrismaClient();
 
 // Configuração do limite do plano via variável de ambiente
 const limitePlanoGb = process.env.LIMITE_PLANO_GB;
@@ -272,8 +271,6 @@ class CreateAnexo {
     } catch (error) {
       logger.error("Erro no Model de CreateAnexo:", error);
       throw error;
-    } finally {
-      await prisma.$disconnect();
     }
   }
 }

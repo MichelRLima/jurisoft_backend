@@ -1,6 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../shared/database/prisma";
 
-const prisma = new PrismaClient();
 class FindPermissao {
   async execute() {
     try {

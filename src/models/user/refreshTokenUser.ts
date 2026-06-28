@@ -1,8 +1,6 @@
-import { PrismaClient } from "@prisma/client";
 import { sign } from "jsonwebtoken";
 import dayjs from "dayjs";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../shared/database/prisma";
 
 class RefreshTokenUser {
   async execute(refresh_token: string) {

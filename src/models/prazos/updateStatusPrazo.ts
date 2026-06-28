@@ -1,10 +1,10 @@
-import { PrismaClient, StatusPrazo, AcaoLog } from "@prisma/client";
+import { StatusPrazo, AcaoLog } from "@prisma/client";
 import logger from "../../utils/logger/logger";
 import { auditEmitter } from "../../services/auditService";
 import { io } from "../.."; // Ajuste o caminho do socket conforme sua estrutura
 import dayjs from "dayjs";
+import { prisma } from "../../shared/database/prisma";
 
-const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || "";
 
 class UpdateStatusPrazo {

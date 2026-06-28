@@ -1,14 +1,12 @@
 // src/jobs/limparNotificacoes.ts
-import { PrismaClient } from "@prisma/client";
 import logger from "../utils/logger/logger";
 import { cronitorClient } from "./cronitorCliente";
-
-const prisma = new PrismaClient();
+import { prisma } from "../shared/database/prisma";
 
 export const iniciarJobLimpezaNotificacoes = () => {
   cronitorClient.schedule!(
     "LimpezaDeNotificacoesLidas",
-    "0 0 * * *",
+    "1 0 * * *",
     async () => {
       logger.info("⏳ Iniciando rotina de limpeza de notificações antigas...");
 

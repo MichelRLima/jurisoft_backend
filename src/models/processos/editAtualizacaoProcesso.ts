@@ -1,6 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../shared/database/prisma";
 
 class EditAtualizacaoProcesso {
   async execute(usuarioId: string, id: string, conteudo: string) {

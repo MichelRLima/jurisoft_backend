@@ -1,8 +1,7 @@
-import { PrismaClient } from "@prisma/client";
 import uploadFotoPerfil from "../../superBase/uploadFotoPerfil";
 import deleteFotoPerfil from "../../superBase/deleteFotoPerfil";
+import { prisma } from "../../../shared/database/prisma";
 
-const client = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
 
 class UpdatePerfil {
@@ -16,7 +15,7 @@ class UpdatePerfil {
   ) {
     try {
       // 1. Busca perfil atual para verificar se há foto antiga
-      const perfilAtual = await client.perfil.findUnique({
+      const perfilAtual = await prisma.perfil.findUnique({
         where: { usuarioId },
       });
 
@@ -34,7 +33,7 @@ class UpdatePerfil {
       }
 
       // 3. Executa a transação
-      const result = await client.$transaction(async (transactionClient) => {
+      const result = await prisma.$transaction(async (transactionClient) => {
         await transactionClient.usuario.update({
           where: { id: usuarioId },
           data: { email },
@@ -69,8 +68,6 @@ class UpdatePerfil {
         error.path = "src/models/internal/perfil/updatePerfil.ts";
       }
       throw error;
-    } finally {
-      await client.$disconnect();
     }
   }
 }

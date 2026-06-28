@@ -1,9 +1,8 @@
-import { PrismaClient, AcaoLog } from "@prisma/client"; // Adicionado AcaoLog
+import { AcaoLog } from "@prisma/client"; // Adicionado AcaoLog
 import { Cliente } from "../../types/cliente";
 import logger from "../../utils/logger/logger";
 import { auditEmitter } from "../../services/auditService";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../shared/database/prisma";
 
 class EditCliente {
   // 👇 Adicionado o usuarioId como terceiro parâmetro
@@ -41,6 +40,8 @@ class EditCliente {
           bairro: dataCliente?.bairro?.trim(),
           cidade: dataCliente?.cidade?.trim(),
           estado: dataCliente?.estado?.trim(),
+          indicacao: dataCliente?.indicacao?.trim(),
+          docIndicacao: dataCliente?.docIndicacao?.trim(),
         },
       });
 
@@ -65,6 +66,8 @@ class EditCliente {
           estado: clienteAntigo.estado,
           logradouro: clienteAntigo.logradouro,
           numero: clienteAntigo.numero,
+          indicacao: clienteAntigo.indicacao,
+          docIndicacao: clienteAntigo.docIndicacao,
         },
         dadosNovos: {
           nome: response.nome,
@@ -75,6 +78,8 @@ class EditCliente {
           estado: response.estado,
           logradouro: response.logradouro,
           numero: response.numero,
+          indicacao: response.indicacao,
+          docIndicacao: response.docIndicacao,
         },
       });
 

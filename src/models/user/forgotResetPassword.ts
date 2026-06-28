@@ -1,7 +1,5 @@
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../shared/database/prisma";
 
 interface ResetPasswordDTO {
   email: string;
@@ -119,8 +117,6 @@ class ForgotResetPassword {
         status: 500,
         error: "Erro interno ao redefinir senha.",
       };
-    } finally {
-      await prisma.$disconnect();
     }
   }
 }

@@ -1,9 +1,8 @@
-import { PrismaClient, AcaoLog } from "@prisma/client"; // Adicionado AcaoLog
+import { AcaoLog } from "@prisma/client"; // Adicionado AcaoLog
 import { Cliente } from "../../types/cliente";
 import logger from "../../utils/logger/logger";
 import { auditEmitter } from "../../services/auditService";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../shared/database/prisma";
 
 class CreateCliente {
   // 👇 Adicionado o usuarioId para o rastreio de auditoria
@@ -41,6 +40,8 @@ class CreateCliente {
           bairro: dataCliente?.bairro?.trim(),
           cidade: dataCliente?.cidade?.trim(),
           estado: dataCliente?.estado?.trim(),
+          indicacao: dataCliente?.indicacao?.trim(),
+          docIndicacao: dataCliente?.docIndicacao?.trim(),
         },
       });
 
@@ -64,6 +65,8 @@ class CreateCliente {
           contato: response.contato,
           cidade: response.cidade,
           estado: response.estado,
+          indicacao: response.indicacao,
+          docIndicacao: response.docIndicacao,
         },
       });
 
@@ -72,7 +75,6 @@ class CreateCliente {
       console.error(error);
       throw error;
     }
-    // O bloco finally foi removido permanentemente.
   }
 }
 

@@ -1,6 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../shared/database/prisma";
 
 const limitePlanoGb = process.env.LIMITE_PLANO_GB;
 const limiteTotalBytes = limitePlanoGb
@@ -10,8 +8,13 @@ const limiteTotalBytes = limitePlanoGb
 class FindArmazenamento {
   async execute() {
     try {
-      // Agregação global de todos os registros da tabela, sem cláusula 'where'
+      // Agregação considerando apenas anexos cujos processos NÃO foram excluídos
       const agregacao = await prisma.anexosProcesso.aggregate({
+        where: {
+          processo: {
+            deletedAt: null, // Filtra removendo os arquivos que pertencem à lixeira
+          },
+        },
         _sum: {
           tamanho: true,
         },
@@ -36,8 +39,6 @@ class FindArmazenamento {
     } catch (error) {
       console.error("Erro ao buscar armazenamento global:", error);
       throw error;
-    } finally {
-      await prisma.$disconnect();
     }
   }
 }

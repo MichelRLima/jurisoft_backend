@@ -1,6 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../shared/database/prisma";
 
-const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL; // 1. Adicionada a referência do bucket
 
 class FindAllUserProcesso {
@@ -54,8 +53,6 @@ class FindAllUserProcesso {
     } catch (error) {
       console.error(error);
       throw error; // Importante manter o throw para o Controller capturar o status 500
-    } finally {
-      await prisma.$disconnect();
     }
   }
 }

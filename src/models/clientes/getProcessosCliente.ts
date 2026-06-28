@@ -1,8 +1,6 @@
-import { PrismaClient } from "@prisma/client";
 import logger from "../../utils/logger/logger";
+import { prisma } from "../../shared/database/prisma";
 
-// Mantenha a instância do cliente fora da classe para ser reutilizada (Singleton)
-const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
 
 class GetProcessosCliente {
@@ -38,6 +36,7 @@ class GetProcessosCliente {
           id: true,
           numeroProcesso: true,
           descricao: true,
+          esfera: true,
           createdAt: true,
           usuarioCriacao: {
             select: {
@@ -163,8 +162,6 @@ class GetProcessosCliente {
     } catch (error) {
       console.error(error);
       throw error;
-    } finally {
-      await prisma.$disconnect();
     }
   }
 }

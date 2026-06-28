@@ -1,16 +1,14 @@
 // src/jobs/iniciarJobVerificacaoPrazos.ts
-import { PrismaClient } from "@prisma/client";
 import logger from "../utils/logger/logger";
 import { cronitorClient } from "./cronitorCliente";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import { prisma } from "../shared/database/prisma";
 import { io } from "..";
 
 dayjs.extend(isBetween);
 dayjs.extend(isSameOrAfter);
-
-const prisma = new PrismaClient();
 
 // Função auxiliar para processar e notificar
 async function processarNotificacoes(
@@ -118,7 +116,7 @@ async function processarNotificacoes(
 }
 
 export const iniciarJobVerificacaoPrazos = () => {
-  cronitorClient.schedule!("VerificacaoDePrazos", "0 0 * * *", async () => {
+  cronitorClient.schedule!("VerificacaoDePrazos", "1 0 * * *", async () => {
     logger.info("⏳ Verificando prazos...");
     const hoje = dayjs().startOf("day");
     const limiteFuturo = hoje.add(3, "day");

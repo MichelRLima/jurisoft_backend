@@ -1,8 +1,7 @@
-import { PrismaClient, AcaoLog } from "@prisma/client";
+import { AcaoLog } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { auditEmitter } from "../../services/auditService";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../shared/database/prisma";
 
 class CreateUser {
   async execute(

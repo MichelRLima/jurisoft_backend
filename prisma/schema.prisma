@@ -78,24 +78,32 @@ model RefreshToken {
 }
 
 model Clientes {
-  id          String      @id @default(uuid())
-  nome        String
-  documento   String      @unique
-  contato     String?
-  email       String?
-  cep         String?
-  logradouro  String?
-  numero      String?
-  complemento String?
-  bairro      String?
-  cidade      String?
-  estado      String?
-  processos   Processos[]
+  id           String      @id @default(uuid())
+  nome         String
+  documento    String      @unique
+  contato      String?
+  email        String?
+  cep          String?
+  logradouro   String?
+  numero       String?
+  complemento  String?
+  bairro       String?
+  cidade       String?
+  estado       String?
+  indicacao    String?
+  docIndicacao String?
+  processos    Processos[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime? @updatedAt
 
   @@map("clientes")
+}
+
+enum EsferaProcesso {
+  JUDICIAL
+  ADMINISTRATIVO
+  EXTRAJUDICIAL
 }
 
 model Processos {
@@ -106,6 +114,8 @@ model Processos {
   statusId             String
   tipoId               String
   clienteId            String
+  deletedAt            DateTime?
+  esfera               EsferaProcesso         @default(JUDICIAL)
   status               StatusProcesso         @relation(fields: [statusId], references: [id])
   tipo                 TipoProcesso           @relation(fields: [tipoId], references: [id])
   usuarioCriacao       Usuario                @relation(fields: [usuarioCriacaoId], references: [id])
@@ -114,6 +124,7 @@ model Processos {
   atualizacoes         AtualizacoesProcesso[]
   notificacoes         Notificacao[]
   prazos               Prazos[]
+  dadosAdicionais      DadoAdicional[]
   cliente              Clientes               @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   createdAt            DateTime               @default(now())
   updatedAt            DateTime?              @updatedAt
@@ -302,4 +313,17 @@ model Prazos {
   updatedAt  DateTime?   @updatedAt
 
   @@map("prazos")
+}
+
+model DadoAdicional {
+  id         String    @id @default(uuid())
+  titulo     String
+  descricao  String?
+  campos     Json
+  processoId String
+  processo   Processos @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@map("dadoAdicional")
 }

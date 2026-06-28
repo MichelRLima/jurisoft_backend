@@ -1,11 +1,9 @@
-const { PrismaClient } = require("@prisma/client");
-
-const client = new PrismaClient();
+import { prisma } from "../../shared/database/prisma";
 
 class CheckUsuario {
   async execute(id: string) {
     try {
-      const usuarioExists = await client.usuario.findFirst({
+      const usuarioExists = await prisma.usuario.findFirst({
         where: { id },
         select: {
           id: true,
@@ -32,8 +30,6 @@ class CheckUsuario {
       }
     } catch (error) {
       console.log(error);
-    } finally {
-      await client.$disconnect();
     }
   }
 }

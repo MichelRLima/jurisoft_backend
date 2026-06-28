@@ -1,8 +1,8 @@
 import { EventEmitter } from "events";
-import { PrismaClient, AcaoLog } from "@prisma/client";
+import { AcaoLog } from "@prisma/client";
 import logger from "../utils/logger/logger"; // Seu logger de console
+import { prisma } from "../shared/database/prisma";
 
-const prisma = new PrismaClient();
 export const auditEmitter = new EventEmitter();
 
 // Interface para garantir que todo log siga o mesmo padrão

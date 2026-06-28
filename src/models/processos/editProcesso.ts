@@ -1,7 +1,8 @@
-import { PrismaClient, AcaoLog } from "@prisma/client";
+import { AcaoLog, EsferaProcesso } from "@prisma/client";
 import logger from "../../utils/logger/logger";
 import { auditEmitter } from "../../services/auditService";
 import { io } from "../.."; // 👇 Importação do socket.io
+import { prisma } from "../../shared/database/prisma";
 
 interface UsuarioResponsavel {
   id: string;
@@ -19,9 +20,9 @@ interface Processo {
   tipo: string;
   usuariosResponsaveis: UsuarioResponsavel[];
   clienteId: string;
+  esfera: EsferaProcesso;
 }
 
-const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
 
 class EditProcesso {
@@ -71,6 +72,7 @@ class EditProcesso {
         data: {
           descricao: processo.descricao,
           numeroProcesso: processo.numeroProcesso,
+          esfera: processo.esfera,
           usuariosResponsaveis: {
             deleteMany: { usuarioId: { in: paraRemover } },
             create: paraAdicionar.map((id) => ({ usuarioId: id })),

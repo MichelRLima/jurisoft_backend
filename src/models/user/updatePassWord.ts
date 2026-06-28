@@ -1,7 +1,5 @@
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-// Mantenha a instância do cliente fora da classe para ser reutilizada (Singleton)
-const prisma = new PrismaClient();
+import { prisma } from "../../shared/database/prisma";
 
 class UpdatePassWord {
   async execute(usuarioId: string, password: string, newPassword: string) {
@@ -35,8 +33,6 @@ class UpdatePassWord {
     } catch (error) {
       console.error(error);
       throw error;
-    } finally {
-      await prisma.$disconnect();
     }
   }
 }

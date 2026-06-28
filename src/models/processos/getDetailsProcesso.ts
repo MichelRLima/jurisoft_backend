@@ -1,9 +1,8 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../shared/database/prisma";
 import logger from "../../utils/logger/logger";
 import { getSecureUrl } from "../../services/storageService";
 import { io } from "../..";
 
-const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
 
 class GetDetailsProcesso {
@@ -15,7 +14,6 @@ class GetDetailsProcesso {
       if (!usuarioId) {
         throw new Error("Necessário informar o usuário");
       }
-      console.log(usuarioId);
 
       const detailsProcesso = await prisma.processos.findFirst({
         where: {
@@ -40,6 +38,7 @@ class GetDetailsProcesso {
           numeroProcesso: true,
           descricao: true,
           createdAt: true,
+          esfera: true,
           usuarioCriacao: {
             select: {
               id: true,
@@ -138,6 +137,14 @@ class GetDetailsProcesso {
               },
             },
             orderBy: { createdAt: "asc" },
+          },
+          dadosAdicionais: {
+            select: {
+              id: true,
+              titulo: true,
+              descricao: true,
+              campos: true,
+            },
           },
         },
       });
@@ -281,7 +288,7 @@ class GetDetailsProcesso {
 
       // Remove a propriedade 'prazos' bruta do Prisma para não duplicar dados
       const { prazos, ...restOfProcesso } = detailsProcesso;
-
+      logger.info("Detalhes do processo buscados com sucesso!");
       return {
         ...restOfProcesso,
         usuarioCriacao: usuarioCriacaoFormatado,
@@ -289,12 +296,11 @@ class GetDetailsProcesso {
         atualizacoes: atualizacoesFormatadas,
         anexosProcesso: anexosComLinksTemporarios,
         prazos: prazosFormatados, // Retorna os prazos na formatação esperada pelo frontend
+        dadosAdicionais: detailsProcesso.dadosAdicionais,
       };
     } catch (error) {
       logger.error("Erro ao buscar detalhes do processo:", error);
       throw error;
-    } finally {
-      await prisma.$disconnect();
     }
   }
 }

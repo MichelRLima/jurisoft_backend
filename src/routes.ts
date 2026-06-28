@@ -48,6 +48,10 @@ import findAnexosController from "./controllers/processos/findAnexosController";
 import findAtualizacoesController from "./controllers/processos/findAtualizacoesController";
 import findPrazosController from "./controllers/processos/findPrazosController";
 import findArmazenamentoController from "./controllers/admin/findArmazenamentoController";
+import findProcessosDeletedController from "./controllers/processos/findProcessosDeletedController";
+import recoveryProcessoController from "./controllers/processos/recoveryProcessoController";
+import createDadoAdicionalController from "./controllers/processos/createDadoAdicionalController";
+import deleteDadoAdicionalController from "./controllers/processos/deleteDadoAdicionalController";
 
 const upload = multer({ storage: multer.memoryStorage() });
 const routes = Router();
@@ -118,6 +122,18 @@ routes.post(
   "/find/processos",
   isAuthenticated,
   getAllProcessosController.handle,
+);
+routes.post(
+  "/find/processos/deleted",
+  isAuthenticated,
+  findProcessosDeletedController.handle,
+);
+
+routes.post(
+  "/recovery/processo",
+  isAuthenticated,
+  ensurePermission(["DEV", "ADV"]),
+  recoveryProcessoController.handle,
 );
 
 routes.post(
@@ -208,6 +224,16 @@ routes.post(
 /* PRAZOS */
 
 routes.post("/create/prazo", isAuthenticated, createPrazoController.handle);
+routes.post(
+  "/create/dadoAdicional",
+  isAuthenticated,
+  createDadoAdicionalController.handle,
+);
+routes.post(
+  "/delete/dadoAdicional",
+  isAuthenticated,
+  deleteDadoAdicionalController.handle,
+);
 routes.post(
   "/find/processos/prazos",
   isAuthenticated,

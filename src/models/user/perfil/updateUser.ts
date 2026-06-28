@@ -1,10 +1,8 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../shared/database/prisma";
 import deleteFotoPerfil from "../../superBase/deleteFotoPerfil";
 import uploadFotoPerfil from "../../superBase/uploadFotoPerfil";
 import logger from "../../../utils/logger/logger";
 
-// Mantenha a instância do cliente fora da classe para ser reutilizada (Singleton)
-const prisma = new PrismaClient();
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
 
 class UpdateUser {
@@ -130,8 +128,6 @@ class UpdateUser {
     } catch (error) {
       console.error(error);
       throw error;
-    } finally {
-      await prisma.$disconnect();
     }
   }
 }

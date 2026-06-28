@@ -1,8 +1,6 @@
-import { PrismaClient } from "@prisma/client";
 import crypto from "crypto";
 import { sendRecoveryEmail } from "../../services/forgotPasswordService/emailService";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../shared/database/prisma";
 
 class ForgotPassword {
   async execute(email: string) {
@@ -51,9 +49,6 @@ class ForgotPassword {
         status: 500,
         error: "Erro interno no servidor ao gerar recuperação de senha.",
       };
-    } finally {
-      // Garante que a conexão com o banco seja encerrada adequadamente
-      await prisma.$disconnect();
     }
   }
 }

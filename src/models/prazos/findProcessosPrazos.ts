@@ -1,6 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../shared/database/prisma";
 
 class FindProcessosPrazos {
   async execute(usuarioId: string) {
