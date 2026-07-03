@@ -2,8 +2,17 @@ import { prisma } from "../../shared/database/prisma";
 import logger from "../../utils/logger/logger";
 import { getSecureUrl } from "../../services/storageService";
 import { io } from "../..";
+import { decryptDado } from "../../utils/crypto/encryption"; // Importe a função de descriptografia
 
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
+
+// Definição do tipo para garantir consistência no mapeamento
+type CampoAdicional = {
+  id: string;
+  label: string;
+  value: string;
+  type: string;
+};
 
 class GetDetailsProcesso {
   async execute(processoId: string, usuarioId: string) {
@@ -17,14 +26,12 @@ class GetDetailsProcesso {
 
       const detailsProcesso = await prisma.processos.findFirst({
         where: {
-          id: processoId, // Filtra pelo ID do processo
+          id: processoId,
           OR: [
             {
-              // Condição 1: Usuário é o criador
               usuarioCriacaoId: usuarioId,
             },
             {
-              // Condição 2: Usuário está na lista de responsáveis
               usuariosResponsaveis: {
                 some: {
                   usuarioId: usuarioId,
@@ -95,7 +102,6 @@ class GetDetailsProcesso {
               estado: true,
             },
           },
-          // ADICIONADO: Busca todos os prazos atrelados a este processo
           prazos: {
             select: {
               id: true,
@@ -106,7 +112,7 @@ class GetDetailsProcesso {
               status: true,
             },
             orderBy: {
-              dataPrazo: "asc", // Ordena do mais próximo para o mais distante
+              dataPrazo: "asc",
             },
           },
           atualizacoes: {
@@ -149,7 +155,6 @@ class GetDetailsProcesso {
         },
       });
 
-      // Se o resultado for nulo, significa que o ID não existe OU o usuário não tem permissão
       if (!detailsProcesso) {
         throw new Error("Processo não encontrado ou sem permissão de acesso.");
       }
@@ -158,7 +163,6 @@ class GetDetailsProcesso {
       // 1. FOTOS DE PERFIL (Bucket Público - Síncrono e Rápido)
       // =========================================================================
 
-      // Formata o Usuário de Criação
       const uCriacao = detailsProcesso.usuarioCriacao;
       const uPerfil = uCriacao?.perfil;
       const uFotoUrl = uPerfil?.foto ? `${R2_PUBLIC_URL}/${uPerfil.foto}` : "";
@@ -169,13 +173,12 @@ class GetDetailsProcesso {
             perfil: uPerfil
               ? {
                   ...uPerfil,
-                  foto: uFotoUrl, // Link estático e permanente
+                  foto: uFotoUrl,
                 }
               : null,
           }
         : null;
 
-      // Formata os Usuários Responsáveis
       const usuariosResponsaveisFormatados =
         detailsProcesso.usuariosResponsaveis.map((responsavel) => {
           const rUsuario = responsavel.usuario;
@@ -190,14 +193,13 @@ class GetDetailsProcesso {
               perfil: rPerfil
                 ? {
                     ...rPerfil,
-                    foto: rFotoUrl, // Link estático e permanente
+                    foto: rFotoUrl,
                   }
                 : null,
             },
           };
         });
 
-      // Formata os Usuários das Atualizações
       const atualizacoesFormatadas = detailsProcesso.atualizacoes.map(
         (atualizacao) => {
           const aUsuario = atualizacao.usuario;
@@ -214,7 +216,7 @@ class GetDetailsProcesso {
                   perfil: aPerfil
                     ? {
                         ...aPerfil,
-                        foto: aFotoUrl, // Link estático e permanente
+                        foto: aFotoUrl,
                       }
                     : null,
                 }
@@ -224,7 +226,7 @@ class GetDetailsProcesso {
       );
 
       // =========================================================================
-      // ADICIONADO: FORMATAÇÃO DOS PRAZOS DESTE PROCESSO
+      // FORMATAÇÃO DOS PRAZOS DESTE PROCESSO
       // =========================================================================
       const prazosFormatados = detailsProcesso.prazos.map((prazo) => ({
         id: prazo.id,
@@ -236,6 +238,41 @@ class GetDetailsProcesso {
         description: prazo.descricao,
         status: prazo.status,
       }));
+
+      // =========================================================================
+      // INTERCEPTAÇÃO: Descriptografar campos de senha em dadosAdicionais
+      // =========================================================================
+      const dadosAdicionaisFormatados = detailsProcesso.dadosAdicionais.map(
+        (dado) => {
+          // Trata a propriedade campos (que vem do Prisma como Json) como um array de objetos CampoAdicional
+          const camposBrutos =
+            (dado.campos as unknown as CampoAdicional[]) || [];
+
+          const camposProcessados = camposBrutos.map((campo) => {
+            if (campo.type === "password" && campo.value) {
+              try {
+                return {
+                  ...campo,
+                  value: decryptDado(campo.value), // Devolve o texto limpo para o front
+                };
+              } catch (decryptionError) {
+                // Fallback preventivo caso haja algum dado antigo em texto plano ou corrompido no banco
+                logger.error(
+                  `Falha ao descriptografar campo ${campo.id}:`,
+                  decryptionError,
+                );
+                return campo;
+              }
+            }
+            return campo;
+          });
+
+          return {
+            ...dado,
+            campos: camposProcessados,
+          };
+        },
+      );
 
       // =========================================================================
       // 2. GERAÇÃO DE LINKS SEGUROS PARA OS ANEXOS (Bucket Privado - Assíncrono)
@@ -260,7 +297,7 @@ class GetDetailsProcesso {
       const notificacoesNaoLidas = await prisma.rlNotificacaoUsuario.findMany({
         where: {
           usuarioId: usuarioId,
-          isRead: false, // Otimização: ignora as que já estão lidas
+          isRead: false,
           notificacao: {
             processoId: processoId,
           },
@@ -279,24 +316,23 @@ class GetDetailsProcesso {
           },
         });
 
-        // Dispara o evento via Socket.io APENAS se houveram notificações atualizadas.
         io.to(`user_${usuarioId}`).emit("read_notificacoes", {
           processoId: processoId,
           mensagem: "Notificações lidas atualizadas",
         });
       }
 
-      // Remove a propriedade 'prazos' bruta do Prisma para não duplicar dados
       const { prazos, ...restOfProcesso } = detailsProcesso;
       logger.info("Detalhes do processo buscados com sucesso!");
+
       return {
         ...restOfProcesso,
         usuarioCriacao: usuarioCriacaoFormatado,
         usuariosResponsaveis: usuariosResponsaveisFormatados,
         atualizacoes: atualizacoesFormatadas,
         anexosProcesso: anexosComLinksTemporarios,
-        prazos: prazosFormatados, // Retorna os prazos na formatação esperada pelo frontend
-        dadosAdicionais: detailsProcesso.dadosAdicionais,
+        prazos: prazosFormatados,
+        dadosAdicionais: dadosAdicionaisFormatados, // Retorna os dados com as senhas abertas
       };
     } catch (error) {
       logger.error("Erro ao buscar detalhes do processo:", error);

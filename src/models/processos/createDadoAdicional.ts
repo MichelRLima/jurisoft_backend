@@ -2,12 +2,21 @@ import { AcaoLog } from "@prisma/client";
 import { prisma } from "../../shared/database/prisma";
 import logger from "../../utils/logger/logger";
 import { auditEmitter } from "../../services/auditService";
+import { encryptDado, decryptDado } from "../../utils/crypto/encryption"; // Importado decryptDado
+
+// Tipagem ajustada para o formato do JSON enviado
+type CampoAdicional = {
+  id: string;
+  label: string;
+  value: string;
+  type: string;
+};
 
 type DadoAdicional = {
   id: string;
   titulo: string;
   descricao: string;
-  campos: string[];
+  campos: CampoAdicional[];
   processoId: string;
 };
 
@@ -18,7 +27,6 @@ class CreateDadoAdicional {
         throw new Error("Título e ID do processo são obrigatórios.");
       }
 
-      // 1. A FOTOGRAFIA DO ANTES: Verifica se já existe para diferenciar CREATE de UPDATE
       let acaoLog: AcaoLog = AcaoLog.CREATE;
       let dadosAnteriores: any = null;
 
@@ -38,21 +46,31 @@ class CreateDadoAdicional {
       }
 
       // =========================================================================
-      // FASE ÚNICA: UPSERT (CRIAR OU ATUALIZAR)
+      // INTERCEPTAÇÃO DE ENVIO: Criptografar campos do tipo 'password'
       // =========================================================================
+      const camposProcessados = dadoAdicional.campos.map((campo) => {
+        if (campo.type === "password" && campo.value) {
+          return {
+            ...campo,
+            value: encryptDado(campo.value),
+          };
+        }
+        return campo;
+      });
+
       const createdDadoAdicional = await prisma.dadoAdicional.upsert({
         where: {
-          id: dadoAdicional.id || "", // Garante fallback caso venha undefined
+          id: dadoAdicional.id || "",
         },
         update: {
           titulo: dadoAdicional.titulo,
           descricao: dadoAdicional.descricao,
-          campos: dadoAdicional.campos,
+          campos: camposProcessados as any,
         },
         create: {
           titulo: dadoAdicional.titulo,
           descricao: dadoAdicional.descricao,
-          campos: dadoAdicional.campos,
+          campos: camposProcessados as any,
           processoId: dadoAdicional.processoId,
         },
       });
@@ -61,9 +79,7 @@ class CreateDadoAdicional {
         `Dado Adicional ${createdDadoAdicional.id} processado com sucesso (Ação: ${acaoLog})!`,
       );
 
-      // =========================================================================
-      // TRILHA DE AUDITORIA (FIRE-AND-FORGET)
-      // =========================================================================
+      // Na auditoria, enviamos os dados processados (criptografados) para manter o log seguro
       auditEmitter.emit("AUDIT_LOG", {
         entidade: "DADO_ADICIONAL",
         entidadeId: createdDadoAdicional.id,
@@ -73,11 +89,38 @@ class CreateDadoAdicional {
         dadosNovos: {
           titulo: createdDadoAdicional.titulo,
           descricao: createdDadoAdicional.descricao,
-          campos: createdDadoAdicional.campos,
+          campos: camposProcessados,
         },
       });
 
-      return createdDadoAdicional;
+      // =========================================================================
+      // INTERCEPTAÇÃO DE RETORNO: Descriptografar para a resposta do Model
+      // =========================================================================
+      const camposBrutosRetorno =
+        (createdDadoAdicional.campos as unknown as CampoAdicional[]) || [];
+
+      const camposDescriptografados = camposBrutosRetorno.map((campo) => {
+        if (campo.type === "password" && campo.value) {
+          try {
+            return {
+              ...campo,
+              value: decryptDado(campo.value), // Converte de volta para texto plano
+            };
+          } catch (decryptionError) {
+            logger.error(
+              `Falha ao descriptografar no retorno do upsert para o campo ${campo.id}:`,
+              decryptionError,
+            );
+            return campo;
+          }
+        }
+        return campo;
+      });
+
+      return {
+        ...createdDadoAdicional,
+        campos: camposDescriptografados,
+      };
     } catch (error) {
       logger.error("Erro no Model de CreateDadoAdicional:", error);
       throw error;

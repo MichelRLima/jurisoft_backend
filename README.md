@@ -36,6 +36,6 @@ Certifique-se de ter o [Node.js](https://nodejs.org/) instalado em sua máquina 
 ### 1. Clonar o repositório
 
 ```bash
-git clone [https://github.com/MichelRLima/jurisoft_backend.git](https://github.com/MichelRLima/jurisoft_backend.git)
+git clone https://github.com/MichelRLima/jurisoft_backend.git
 cd jurisoft-backend
 ```
