@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: "jurisoft-backend",
+      name: "jusoft-backend",
       script: "./dist/index.js",
       env: {
         NODE_ENV: "production",
