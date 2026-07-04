@@ -33,6 +33,7 @@ class FindProcessosDeleted {
           numeroProcesso: true,
           descricao: true,
           deletedAt: true, // Necessário para o cálculo de tempo no mapeamento
+          esfera: true,
           cliente: {
             select: {
               id: true,
@@ -69,6 +70,7 @@ class FindProcessosDeleted {
           cliente: processo.cliente,
           // Se passou dos 7 dias e o Cron Job ainda não rodou, exibe 0 para não quebrar a tela
           diasParaExclusaoDefinitiva: diasRestantes > 0 ? diasRestantes : 0,
+          esfera: processo.esfera,
         };
       });
 

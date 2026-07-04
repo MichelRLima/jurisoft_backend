@@ -2,6 +2,7 @@ import { AcaoLog } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { auditEmitter } from "../../services/auditService";
 import { prisma } from "../../shared/database/prisma";
+import { sendWelcomeEmail } from "../../services/sendWelcomeEmail";
 
 class CreateUser {
   async execute(
@@ -16,7 +17,6 @@ class CreateUser {
         const userAlreadyExists = await tx.usuario.findFirst({
           where: { OR: [{ login }, { email }] },
         });
-        console.log(userAlreadyExists);
 
         if (userAlreadyExists) {
           throw Object.assign(new Error("Usuário já existe!"), { status: 409 });
@@ -26,6 +26,15 @@ class CreateUser {
         const newUser = await tx.usuario.create({
           data: { login, senha: passwordHash, email, status: 1, permissaoId },
         });
+
+        if (process.env.FRONTEND_URL) {
+          await sendWelcomeEmail({
+            to: email,
+            login: login,
+            pass: senha,
+            frontendLink: process.env.FRONTEND_URL,
+          });
+        }
 
         // Disparar Log
         auditEmitter.emit("AUDIT_LOG", {
