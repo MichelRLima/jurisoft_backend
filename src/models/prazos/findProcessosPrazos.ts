@@ -21,6 +21,7 @@ class FindProcessosPrazos {
         select: {
           id: true,
           numeroProcesso: true,
+          esfera: true,
           cliente: {
             select: {
               nome: true,

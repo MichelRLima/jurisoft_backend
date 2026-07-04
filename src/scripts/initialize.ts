@@ -29,6 +29,11 @@ const initializeStatusProcesso = async () => {
         codigoStatus: "indeferido",
         status: true,
       },
+      {
+        nomeStatus: "Documentação pendente",
+        codigoStatus: "documentacao_pendente",
+        status: true,
+      },
     ];
 
     const tiposProcessoInitialize = [

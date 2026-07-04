@@ -237,6 +237,7 @@ class GetDetailsProcesso {
         taskType: prazo.tipo,
         description: prazo.descricao,
         status: prazo.status,
+        esfera: detailsProcesso.esfera,
       }));
 
       // =========================================================================

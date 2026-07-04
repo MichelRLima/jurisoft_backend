@@ -35,8 +35,10 @@ class FindPrazosCliente {
           },
           include: {
             processo: {
-              include: {
-                cliente: true, // Garante que o nome do cliente venha junto
+              select: {
+                numeroProcesso: true,
+                esfera: true,
+                cliente: true,
               },
             },
           },
@@ -55,6 +57,7 @@ class FindPrazosCliente {
           taskType: prazo.tipo, // O Prisma já retornará a string do Enum ('peticao', 'audiencia', etc.)
           description: prazo.descricao,
           status: prazo.status, // Propriedade extra útil para o controle de isCompleted no Card
+          esfera: prazo.processo.esfera,
         }));
       }
 
