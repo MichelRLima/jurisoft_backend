@@ -53,7 +53,13 @@ import recoveryProcessoController from "./controllers/processos/recoveryProcesso
 import createDadoAdicionalController from "./controllers/processos/createDadoAdicionalController";
 import deleteDadoAdicionalController from "./controllers/processos/deleteDadoAdicionalController";
 
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // Limite de 10MB por arquivo (ajuste conforme a necessidade)
+    files: 30, // Limite de 20 arquivos por requisição
+  },
+});
 const routes = Router();
 
 // Rota simples de teste
