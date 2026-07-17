@@ -184,7 +184,6 @@ class CreateProcesso {
       // =========================================================================
 
       logger.debug(`Criando processo no banco de dados`);
-      console.log(processo.responsaveis);
 
       const result = await prisma.$transaction(async (tx) => {
         // 1. Cria o processo
@@ -394,8 +393,10 @@ class CreateProcesso {
           numeroProcesso: result.numeroProcesso,
           descricao: result.descricao,
           status: result.status?.nomeStatus,
+          esfera: result.esfera,
           tipo: result.tipo?.nomeTipo,
           cliente: result.cliente?.nome,
+          usuariosResponsaveis: result.usuariosResponsaveis,
         },
       });
 
