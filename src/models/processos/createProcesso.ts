@@ -64,7 +64,6 @@ class CreateProcesso {
     try {
       if (
         !processo?.clienteId ||
-        !processo?.numeroProcesso ||
         !processo?.status ||
         !processo?.descricao ||
         !processo?.tipo ||
@@ -89,21 +88,23 @@ class CreateProcesso {
         throw new Error("Cliente não encontrado");
       }
 
-      const firstProcesso = await prisma.processos.findFirst({
-        where: {
-          numeroProcesso: processo.numeroProcesso,
-        },
-      });
-
-      if (firstProcesso) {
-        throw Object.assign(
-          new Error(
-            `Já existe um processo cadastrado com o número ${processo.numeroProcesso}`,
-          ),
-          {
-            status: 409,
+      if (processo.numeroProcesso) {
+        const firstProcesso = await prisma.processos.findFirst({
+          where: {
+            numeroProcesso: processo.numeroProcesso?.trim(),
           },
-        );
+        });
+
+        if (firstProcesso) {
+          throw Object.assign(
+            new Error(
+              `Já existe um processo cadastrado com o número ${processo?.numeroProcesso?.trim()}`,
+            ),
+            {
+              status: 409,
+            },
+          );
+        }
       }
 
       // =========================================================================
@@ -170,7 +171,7 @@ class CreateProcesso {
             );
             const timestamp = Date.now();
 
-            const caminhoNoStorage = `clientes/${cliente.id}/processos/${processo.numeroProcesso}/${timestamp}-${nomeSeguro}`;
+            const caminhoNoStorage = `clientes/${cliente.id}/processos/anexos/${timestamp}-${nomeSeguro}`;
 
             await uploadFile(file.buffer, caminhoNoStorage, file.mimetype);
 

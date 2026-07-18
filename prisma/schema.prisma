@@ -108,7 +108,7 @@ enum EsferaProcesso {
 
 model Processos {
   id                   String                 @id @default(uuid())
-  numeroProcesso       String                 @unique
+  numeroProcesso       String?                @unique
   descricao            String
   usuarioCriacaoId     String
   statusId             String

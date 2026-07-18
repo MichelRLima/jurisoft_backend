@@ -54,6 +54,25 @@ class EditProcesso {
 
       if (!cliente) throw new Error("Cliente não encontrado");
 
+      if (processo.numeroProcesso) {
+        const alreadyExists = await prisma.processos.findFirst({
+          where: {
+            numeroProcesso: processo.numeroProcesso?.trim(),
+          },
+        });
+
+        if (alreadyExists) {
+          throw Object.assign(
+            new Error(
+              `Já existe um processo cadastrado com o número ${processo?.numeroProcesso}`,
+            ),
+            {
+              status: 409,
+            },
+          );
+        }
+      }
+
       const idsAtuais = firstProcesso.usuariosResponsaveis?.map(
         (u) => u.usuarioId,
       );
@@ -71,7 +90,7 @@ class EditProcesso {
         where: { id: processo.id },
         data: {
           descricao: processo.descricao,
-          numeroProcesso: processo.numeroProcesso,
+          numeroProcesso: processo.numeroProcesso?.trim() || null,
           esfera: processo.esfera,
           usuariosResponsaveis: {
             deleteMany: { usuarioId: { in: paraRemover } },
@@ -310,7 +329,7 @@ class EditProcesso {
         acao: AcaoLog.UPDATE,
         atorId: usuarioId,
         dadosAnteriores: {
-          numeroProcesso: firstProcesso.numeroProcesso,
+          numeroProcesso: firstProcesso.numeroProcesso?.trim() || null,
           descricao: firstProcesso.descricao,
           status: firstProcesso.status?.nomeStatus,
           tipo: firstProcesso.tipo?.nomeTipo,

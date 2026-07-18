@@ -97,7 +97,7 @@ class CreateAnexo {
 
           const nomeSeguro = file.originalname.replace(/[^a-zA-Z0-9.-]/g, "_");
           const timestamp = Date.now();
-          const caminhoNoStorage = `clientes/${processo.clienteId}/processos/${processo.numeroProcesso}/${timestamp}-${nomeSeguro}`;
+          const caminhoNoStorage = `clientes/${processo.clienteId}/processos/anexos/${timestamp}-${nomeSeguro}`;
 
           await uploadFile(file.buffer, caminhoNoStorage, file.mimetype);
 
