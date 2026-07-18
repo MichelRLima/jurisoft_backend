@@ -96,9 +96,14 @@ class CreateProcesso {
       });
 
       if (firstProcesso) {
-        throw Object.assign(new Error("Processo já cadastrado"), {
-          status: 409,
-        });
+        throw Object.assign(
+          new Error(
+            `Já existe um processo cadastrado com o número ${processo.numeroProcesso}`,
+          ),
+          {
+            status: 409,
+          },
+        );
       }
 
       // =========================================================================
